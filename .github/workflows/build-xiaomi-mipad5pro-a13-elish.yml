@@ -179,46 +179,6 @@ jobs:
           echo "==> Done. All Droidspaces essentials have been injected."
 
 
-      - name: 🛠 Replace gcc-wrapper.py & force CC to real GCC
-        run: |
-          cd $GITHUB_WORKSPACE/device_kernel
-
-          # 1. 创建智能 Python 3 wrapper，兼容两种调用方式
-          cat > scripts/gcc-wrapper.py << 'WRAPPER_EOF'
-          #!/usr/bin/env python3
-          import os, sys
-
-          # 如果第一个参数是交叉编译器（例如 "aarch64-linux-gnu-gcc"），就用它
-          if len(sys.argv) > 1 and (sys.argv[1].endswith('gcc') or sys.argv[1].endswith('g++')):
-              compiler = sys.argv[1]
-              args = sys.argv[2:]      # 丢弃脚本名和这个编译器名
-          else:
-              # 否则用 CROSS_COMPILE 环境变量拼接
-              cross = os.environ.get('CROSS_COMPILE', '')
-              compiler = cross + 'gcc'
-              args = sys.argv[1:]      # 只丢弃脚本名
-          os.execvp(compiler, [compiler] + args)
-          WRAPPER_EOF
-          chmod +x scripts/gcc-wrapper.py
-
-          # 2. 强力修改 Makefile：直接在最开头覆盖 CC 和 HOSTCC
-          sed -i '1i CC := $(CROSS_COMPILE)gcc' Makefile
-          sed -i '1i HOSTCC := gcc' Makefile
-
-          # 3. 同样写入环境变量作为双重保险
-          echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-          echo "HOSTCC=gcc" >> $GITHUB_ENV
-          echo "gcc-wrapper upgraded. CC forced to real GCC."
-
-
-      - name: 🔧 Fix dtc multiple definition (yylloc)
-        run: |
-          echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
-
-      - name: 🛠 Suppress incompatible warnings (GCC9+)
-        run: |
-          echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=maybe-uninitialized -fno-inline" >> $GITHUB_ENV
-
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
 
