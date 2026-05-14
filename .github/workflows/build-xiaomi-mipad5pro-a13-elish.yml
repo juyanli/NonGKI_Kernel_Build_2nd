@@ -190,6 +190,10 @@ jobs:
           echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
+      - name: 🛠 Suppress Clang errors for old kernel code
+        run: |
+          echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes" >> $GITHUB_ENV          
+
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
