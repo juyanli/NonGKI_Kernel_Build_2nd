@@ -92,7 +92,7 @@ env:
 jobs:
   build-kernel:
     name: Build Kernel
-    runs-on: ubuntu-20.04 # u can changed to ubuntu 22.04, and need container set ubuntu-latest
+    runs-on: ubuntu-latest # u can changed to ubuntu 22.04, and need container set ubuntu-latest
     # container: archlinux/archlinux:latest # if u need use arch linux -> archlinux/archlinux:latest or ubuntu 20.04 -> ubuntu:focal
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
@@ -123,9 +123,13 @@ jobs:
 
       - name: 🪛 Extra Kernel Options
         run: |
-          # Only ${{ env.DEVICE_NAME }} use it.
-          cd $GITHUB_WORKSPACE/device_kernel
-          # Nothing
+              cd $GITHUB_WORKSPACE/device_kernel
+              # 修复 Python 2 的 print 语句
+              sed -i 's/print "error, forbidden warning:/print("error, forbidden warning:/' scripts/gcc-wrapper.py
+              sed -i 's/", m.group(2)/", m.group(2))/' scripts/gcc-wrapper.py
+              # 注释掉 init/Kconfig 中会导致语法错误的两行
+              sed -i '16s/^/#/' init/Kconfig
+              sed -i '17s/^/#/' init/Kconfig
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
