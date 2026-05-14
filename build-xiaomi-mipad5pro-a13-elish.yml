@@ -35,8 +35,9 @@ env:
   # ========== KernelSU（建议保留）==========
   KERNELSU_SOURCE : ""
   KERNELSU_BRANCH : ""
-  KERNELSU_AUTO_GET : "true"
+  KERNELSU_AUTO_GET : "false"
   KERNELSU_AUTO_FORK : "magic"
+
 
   # ========== SUSFS（一般不需要）==========
   SUSFS_ENABLE : false
@@ -57,7 +58,7 @@ env:
   PACK_METHOD: "Anykernel3"
   PACK_KMODULES: "false"
 
-  KERNELSU_METHOD: "shell"
+  KERNELSU_METHOD: "none"  
 
   PATCHES_SOURCE: ""
   PATCHES_BRANCH: ""
@@ -109,6 +110,11 @@ jobs:
       - name: ⚙️ Get neccssary tools
         uses: ./.github/workflows/build-ready
 
+      - name: 🧰 Integrate Magic-KernelSU
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash -s main
+
       - name: 🪝 Patch Kernel of SUSFS
         uses: ./.github/workflows/patch-susfs
 
@@ -158,6 +164,12 @@ jobs:
 
       - name: 🔧 Patch Hide Stuff
         uses: ./.github/workflows/patch-hide-stuff
+
+      - name: 🔧 Fix Compile Env (LLVM & fcommon)
+        run: |
+          echo "LLVM=1" >> $GITHUB_ENV
+          echo "LLVM_IAS=1" >> $GITHUB_ENV
+          echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
