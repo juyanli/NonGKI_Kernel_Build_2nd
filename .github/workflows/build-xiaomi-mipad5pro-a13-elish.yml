@@ -194,8 +194,10 @@ jobs:
           sed -i -E 's/^(\s*)print ([^(].+)/\1print(\2)/' scripts/gcc-wrapper.py
           echo "gcc-wrapper.py patched successfully."
 
+      - name: 🔧 Fix dtc multiple definition (yylloc)
+        run: |
+          echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
-          
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
 
