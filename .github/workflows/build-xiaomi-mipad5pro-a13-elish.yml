@@ -171,6 +171,14 @@ jobs:
           echo "LLVM_IAS=1" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
+      - name: 🧹 Disable incompatible gcc-wrapper
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          if [ -f scripts/gcc-wrapper.py ]; then
+            echo "Renaming gcc-wrapper.py to disable it..."
+            mv scripts/gcc-wrapper.py scripts/gcc-wrapper.py.bak
+          fi
+
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
 
