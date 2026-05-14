@@ -17,8 +17,8 @@ env:
   KERNEL_BRANCH : "elish-r-oss"
 
   # ========== 工具链 ==========
-  CLANG_SOURCE : "https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.0/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz"
-  CLANG_BRANCH : ""
+  CLANG_SOURCE : "https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git"
+  CLANG_BRANCH : "master"
 
   GCC_GNU : false
   GCC_64_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git"
@@ -195,6 +195,8 @@ jobs:
 
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
+        env:
+          CC: clang        
 
       - name: 🔩 Pack Process
         uses: ./.github/workflows/pack-process
