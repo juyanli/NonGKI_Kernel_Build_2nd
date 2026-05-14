@@ -177,7 +177,14 @@ jobs:
             echo "CONFIG_ANDROID_PARANOID_NETWORK=n" >> ${DEFCONFIG}
 
           echo "==> Done. All Droidspaces essentials have been injected."
+      
+      - name: 🔧 Fix Clang assembly & dtc yylloc
+        run: |
+          echo "AS=clang" >> $GITHUB_ENV
+          echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
+      - name: 🧰 Patch Kernel of Re:Kernel
+        uses: ./.github/workflows/patch-rekernel
 
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
