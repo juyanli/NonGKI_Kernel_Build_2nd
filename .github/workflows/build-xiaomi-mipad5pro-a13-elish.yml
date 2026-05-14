@@ -183,11 +183,21 @@ jobs:
           echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
-      - name: 🔧 Force host tools to use gcc (fix -EL error)
+      - name: 🔧 Force host tools to use real gcc (fix -EL error)
         run: |
+          # 创建一个假的gcc脚本，它会调用真正的gcc
+          mkdir -p $GITHUB_WORKSPACE/fake-gcc
+          cat > $GITHUB_WORKSPACE/fake-gcc/gcc << 'EOF'
+          #!/bin/bash
+          /usr/bin/gcc "$@"
+          EOF
+          chmod +x $GITHUB_WORKSPACE/fake-gcc/gcc
+          # 将这个假的gcc目录加到PATH最前面，优先级最高
+          echo "$GITHUB_WORKSPACE/fake-gcc" >> $GITHUB_PATH
+
           cd $GITHUB_WORKSPACE/device_kernel
-          # 让 scripts/mod 目录下的编译使用系统 gcc 而非 clang
-          sed -i '1i CC := gcc' scripts/mod/Makefile
+          # 同时修改Makefile，确保HOSTCC也使用gcc
+          sed -i '1i HOSTCC := gcc' Makefile
 
 
       - name: 🧰 Patch Kernel of Re:Kernel
