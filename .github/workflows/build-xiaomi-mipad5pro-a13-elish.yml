@@ -178,16 +178,32 @@ jobs:
 
           echo "==> Done. All Droidspaces essentials have been injected."
 
-      - name: 🛠 Bypass gcc-wrapper entirely (use real GCC)
+      - name: 🛠 Replace gcc-wrapper.py with transparent Python3 wrapper
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          # 1. 让顶层 Makefile 直接用交叉编译器
+          # 备份原脚本（可选）
+          cp scripts/gcc-wrapper.py scripts/gcc-wrapper.py.bak
+          # 创建新的透明 wrapper
+          cat > scripts/gcc-wrapper.py << 'WRAPPER_EOF'
+          #!/usr/bin/env python3
+          import os, sys
+
+          # 直接调用真正的交叉编译器，不进行任何警告过滤
+          cross = os.environ.get('CROSS_COMPILE', '')
+          compiler = cross + 'gcc'
+          # 用 execvp 替换当前进程，完全成为真正的 gcc
+          os.execvp(compiler, [compiler] + sys.argv[1:])
+          WRAPPER_EOF
+          chmod +x scripts/gcc-wrapper.py
+
+          # 同时确保 Makefile 里的 CC 直接指向 gcc（双重保险）
           sed -i 's/^CC\s*:=.*/CC := $(CROSS_COMPILE)gcc/' Makefile
-          # 2. 如果 Makefile 里原本没有 CC 定义，则在 CROSS_COMPILE 行后添加
           grep -q '^CC\s*:=' Makefile || sed -i '/^CROSS_COMPILE/a CC := $(CROSS_COMPILE)gcc' Makefile
-          # 3. 重命名 gcc-wrapper.py，使其失效
-          mv scripts/gcc-wrapper.py scripts/gcc-wrapper.py.disabled
-          echo "gcc-wrapper disabled. CC set to real GCC."
+
+          # 将 CC 和 HOSTCC 写入环境变量，防止被后续脚本覆盖
+          echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "HOSTCC=gcc" >> $GITHUB_ENV
+          echo "Transparent gcc-wrapper installed."
 
 
       - name: 🔧 Fix dtc multiple definition (yylloc)
