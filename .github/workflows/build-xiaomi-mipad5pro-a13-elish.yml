@@ -181,15 +181,21 @@ jobs:
       - name: 🧹 Fix gcc-wrapper.py for Python 3
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          # 确保脚本是原始文件
           git checkout -- scripts/gcc-wrapper.py
-          # 修复 print 语句: 添加括号
-          sed -i 's/^\([[:space:]]*\)print "\(.*\)"[[:space:]]*$/\1print("\2")/g' scripts/gcc-wrapper.py
-          # 修复 print 语句: 移除行尾逗号 (print line,)
-          sed -i 's/^\([[:space:]]*\)print \([^,]*\),$/\1print(\2)/g' scripts/gcc-wrapper.py
-          # 修复特殊语法: print >> sys.stderr, ...
-          sed -i "s/^\([[:space:]]*\)print >> \([^,]*\), \(.*\)$/\1print(\3, file=\2)/g" scripts/gcc-wrapper.py
-          echo "gcc-wrapper.py patched successfully for Python 3."
+          # 处理 print "string", expression
+          sed -i -E 's/^(\s*)print "([^"]*)", (.+)/\1print("\2", \3)/g' scripts/gcc-wrapper.py
+          # 处理 print "string"
+          sed -i -E 's/^(\s*)print "([^"]*)"$/\1print("\2")/g' scripts/gcc-wrapper.py
+          # 处理 print >> file, ...
+          sed -i -E 's/^(\s*)print >> ([^,]*), (.+)/\1print(\3, file=\2)/g' scripts/gcc-wrapper.py
+          # 处理 print variable, (行尾逗号)
+          sed -i -E 's/^(\s*)print ([^,"]+),$/\1print(\2)/g' scripts/gcc-wrapper.py
+          # 最后兜底：将任何未转换的 print 变为 print()
+          sed -i -E 's/^(\s*)print ([^(].+)/\1print(\2)/' scripts/gcc-wrapper.py
+          echo "gcc-wrapper.py patched successfully."
+
+
+          
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
 
