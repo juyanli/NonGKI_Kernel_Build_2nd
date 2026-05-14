@@ -178,11 +178,11 @@ jobs:
 
           echo "==> Done. All Droidspaces essentials have been injected."
 
-      - name: 🧹 Fix gcc-wrapper.py for Python 3 (auto 2to3)
+      - name: 🧹 Fix gcc-wrapper.py for Python 3
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          git checkout -- scripts/gcc-wrapper.py
-          2to3 -w scripts/gcc-wrapper.py
+          git checkout -- scripts/gcc-wrapper.py          # 确保是原版文件
+          python3 -m lib2to3 -w scripts/gcc-wrapper.py    # 用标准库自动转换
 
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
