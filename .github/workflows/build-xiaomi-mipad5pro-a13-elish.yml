@@ -183,7 +183,7 @@ jobs:
           echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
-      - name: 🔧 Fix scripts/mod – GCC with option filter
+      - name: 🔧 Fix scripts/mod – GCC with option filter (v2)
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
           # 创建一个脚本，过滤掉 Clang 特有的参数后调用真正的 gcc
@@ -194,6 +194,8 @@ jobs:
             case "$arg" in
               -mlittle-endian|-mbig-endian|-EL|-EB|-mno-global-merge|-mno-implicit-float|-meabi|-Qunused-arguments|-no-integrated-as)
                 ;;  # 丢弃这些 Clang 参数
+              -W*)
+                ;;  # 丢弃所有 -W 开头的警告选项（Clang 专用）
               --target=*|--gcc-toolchain=*)
                 ;;  # 丢弃
               *)
@@ -207,7 +209,6 @@ jobs:
           # 强制 scripts/mod/ 使用这个过滤器
           sed -i "1i override CC := /tmp/gcc-filter" scripts/mod/Makefile
           echo "HOSTCC=gcc" >> $GITHUB_ENV
-
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
