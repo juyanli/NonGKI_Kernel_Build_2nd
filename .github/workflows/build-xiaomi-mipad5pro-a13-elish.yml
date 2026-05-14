@@ -189,7 +189,15 @@ jobs:
           # 将顶层 Makefile 中的 AS 定义改为直接使用 CC 并添加 -c 选项
           sed -i 's/^AS\s*=.*/AS = $(CC) -c/' Makefile
 
-
+      - name: 🛠 Fix LLD linker flags (ignore versioned symbols)
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          # 允许未定义的版本符号，直接绕过 MODVERSIONS 重定位错误
+          if grep -q '^LDFLAGS_vmlinux' Makefile; then
+            sed -i 's/^LDFLAGS_vmlinux\s*=/LDFLAGS_vmlinux += --no-undefined-version # /' Makefile
+          else
+            echo 'LDFLAGS_vmlinux += --no-undefined-version' >> Makefile
+          fi
 
       - name: 🛠 Fix undefined stpcpy
         run: |
