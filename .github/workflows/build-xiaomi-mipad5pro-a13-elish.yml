@@ -38,6 +38,7 @@ env:
   KERNELSU_AUTO_GET : "true"
   KERNELSU_AUTO_FORK : "magic"
 
+
   # ========== SUSFS（一般不需要）==========
   SUSFS_ENABLE : false
   SUSFS_FIXED : false
@@ -57,7 +58,7 @@ env:
   PACK_METHOD: "Anykernel3"
   PACK_KMODULES: "false"
 
-  KERNELSU_METHOD: "shell"
+  KERNELSU_METHOD: "shell"  
 
   PATCHES_SOURCE: ""
   PATCHES_BRANCH: ""
@@ -108,6 +109,11 @@ jobs:
 
       - name: ⚙️ Get neccssary tools
         uses: ./.github/workflows/build-ready
+
+      - name: 🧰 Integrate Magic-KernelSU
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash -s main
 
       - name: 🪝 Patch Kernel of SUSFS
         uses: ./.github/workflows/patch-susfs
