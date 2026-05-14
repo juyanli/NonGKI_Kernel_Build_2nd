@@ -10,7 +10,7 @@ env:
   DEVICE_CODENAME : "elish"
 
   CUSTOM_CMDS : "CLANG_TRIPLE=aarch64-linux-gnu-"
-  EXTRA_CMDS : "LD=ld.lld --no-undefined-version LLVM=1 LLVM_IAS=1"
+  EXTRA_CMDS : "LD=ld.lld LLVM=1 LLVM_IAS=1"
 
   # ========== 内核源码 ==========
   KERNEL_SOURCE : "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
@@ -189,7 +189,11 @@ jobs:
           # 将顶层 Makefile 中的 AS 定义改为直接使用 CC 并添加 -c 选项
           sed -i 's/^AS\s*=.*/AS = $(CC) -c/' Makefile
 
-
+      - name: 🛠 Fix LLD linker flags (allow undefined versioned symbols)
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          # 在 Makefile 中给 LD 变量追加 --no-undefined-version，绕过 MODVERSIONS 重定位错误
+          sed -i '/^LD\s*:=/ s/$/ --no-undefined-version/' Makefile
 
       - name: 🛠 Fix undefined stpcpy
         run: |
