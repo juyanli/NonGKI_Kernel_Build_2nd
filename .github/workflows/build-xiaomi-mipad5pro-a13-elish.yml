@@ -178,32 +178,37 @@ jobs:
 
           echo "==> Done. All Droidspaces essentials have been injected."
 
-      - name: 🛠 Replace gcc-wrapper.py with transparent Python3 wrapper
+
+      - name: 🛠 Replace gcc-wrapper.py & force CC to real GCC
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          # 备份原脚本（可选）
-          cp scripts/gcc-wrapper.py scripts/gcc-wrapper.py.bak
-          # 创建新的透明 wrapper
+
+          # 1. 创建智能 Python 3 wrapper，兼容两种调用方式
           cat > scripts/gcc-wrapper.py << 'WRAPPER_EOF'
           #!/usr/bin/env python3
           import os, sys
 
-          # 直接调用真正的交叉编译器，不进行任何警告过滤
-          cross = os.environ.get('CROSS_COMPILE', '')
-          compiler = cross + 'gcc'
-          # 用 execvp 替换当前进程，完全成为真正的 gcc
-          os.execvp(compiler, [compiler] + sys.argv[1:])
+          # 如果第一个参数是交叉编译器（例如 "aarch64-linux-gnu-gcc"），就用它
+          if len(sys.argv) > 1 and (sys.argv[1].endswith('gcc') or sys.argv[1].endswith('g++')):
+              compiler = sys.argv[1]
+              args = sys.argv[2:]      # 丢弃脚本名和这个编译器名
+          else:
+              # 否则用 CROSS_COMPILE 环境变量拼接
+              cross = os.environ.get('CROSS_COMPILE', '')
+              compiler = cross + 'gcc'
+              args = sys.argv[1:]      # 只丢弃脚本名
+          os.execvp(compiler, [compiler] + args)
           WRAPPER_EOF
           chmod +x scripts/gcc-wrapper.py
 
-          # 同时确保 Makefile 里的 CC 直接指向 gcc（双重保险）
-          sed -i 's/^CC\s*:=.*/CC := $(CROSS_COMPILE)gcc/' Makefile
-          grep -q '^CC\s*:=' Makefile || sed -i '/^CROSS_COMPILE/a CC := $(CROSS_COMPILE)gcc' Makefile
+          # 2. 强力修改 Makefile：直接在最开头覆盖 CC 和 HOSTCC
+          sed -i '1i CC := $(CROSS_COMPILE)gcc' Makefile
+          sed -i '1i HOSTCC := gcc' Makefile
 
-          # 将 CC 和 HOSTCC 写入环境变量，防止被后续脚本覆盖
+          # 3. 同样写入环境变量作为双重保险
           echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
           echo "HOSTCC=gcc" >> $GITHUB_ENV
-          echo "Transparent gcc-wrapper installed."
+          echo "gcc-wrapper upgraded. CC forced to real GCC."
 
 
       - name: 🔧 Fix dtc multiple definition (yylloc)
