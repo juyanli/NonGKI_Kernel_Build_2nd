@@ -178,30 +178,21 @@ jobs:
 
           echo "==> Done. All Droidspaces essentials have been injected."
 
-      - name: 🧹 Fix gcc-wrapper.py for Python 3
+      - name: 🛠 Bypass gcc-wrapper entirely (use real GCC)
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          git checkout -- scripts/gcc-wrapper.py
-          # 处理 print "string", expression
-          sed -i -E 's/^(\s*)print "([^"]*)", (.+)/\1print("\2", \3)/g' scripts/gcc-wrapper.py
-          # 处理 print "string"
-          sed -i -E 's/^(\s*)print "([^"]*)"$/\1print("\2")/g' scripts/gcc-wrapper.py
-          # 处理 print >> file, ...
-          sed -i -E 's/^(\s*)print >> ([^,]*), (.+)/\1print(\3, file=\2)/g' scripts/gcc-wrapper.py
-          # 处理 print variable, (行尾逗号)
-          sed -i -E 's/^(\s*)print ([^,"]+),$/\1print(\2)/g' scripts/gcc-wrapper.py
-          # 最后兜底：将任何未转换的 print 变为 print()
-          sed -i -E 's/^(\s*)print ([^(].+)/\1print(\2)/' scripts/gcc-wrapper.py
-          echo "gcc-wrapper.py patched successfully."
+          # 1. 让顶层 Makefile 直接用交叉编译器
+          sed -i 's/^CC\s*:=.*/CC := $(CROSS_COMPILE)gcc/' Makefile
+          # 2. 如果 Makefile 里原本没有 CC 定义，则在 CROSS_COMPILE 行后添加
+          grep -q '^CC\s*:=' Makefile || sed -i '/^CROSS_COMPILE/a CC := $(CROSS_COMPILE)gcc' Makefile
+          # 3. 重命名 gcc-wrapper.py，使其失效
+          mv scripts/gcc-wrapper.py scripts/gcc-wrapper.py.disabled
+          echo "gcc-wrapper disabled. CC set to real GCC."
+
 
       - name: 🔧 Fix dtc multiple definition (yylloc)
         run: |
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
-
-      - name: 🛠 Override CC to bypass gcc-wrapper
-        run: |
-          echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-
 
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
