@@ -10,7 +10,7 @@ env:
   DEVICE_CODENAME : "elish"
 
   CUSTOM_CMDS : "CLANG_TRIPLE=aarch64-linux-gnu-"
-  EXTRA_CMDS : "LD=ld.lld LLVM=1 LLVM_IAS=1"
+EXTRA_CMDS : "LD=ld.lld --no-undefined-version LLVM=1 LLVM_IAS=1"
 
   # ========== 内核源码 ==========
   KERNEL_SOURCE : "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
@@ -176,9 +176,8 @@ jobs:
           grep -q "^CONFIG_ANDROID_PARANOID_NETWORK=n" ${DEFCONFIG} || \
             echo "CONFIG_ANDROID_PARANOID_NETWORK=n" >> ${DEFCONFIG}
 
-          echo "==> Done. All Droidspaces essentials have been injected."
-
-          # 新增：禁用 MODVERSIONS，避免 LLD 链接错误
+          # 先删除可能存在的 MODVERSIONS 配置，再重新添加禁用
+          sed -i '/CONFIG_MODVERSIONS/d' ${DEFCONFIG}
           echo "# CONFIG_MODVERSIONS is not set" >> ${DEFCONFIG}
 
           echo "==> Done. All Droidspaces essentials have been injected."
@@ -217,6 +216,11 @@ jobs:
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
+
+      - name: 🧹 Clean previous build artifacts
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          rm -rf out        
 
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
