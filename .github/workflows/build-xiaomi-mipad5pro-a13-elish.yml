@@ -221,6 +221,49 @@ jobs:
           sed -i "1i override CC := /tmp/gcc-filter" scripts/mod/Makefile
           echo "HOSTCC=gcc" >> $GITHUB_ENV
 
+
+      - name: 🔧 Replace gcc-filter with robust version (v3)
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          cat > /tmp/gcc-filter-v3 << 'EOF'
+          #!/bin/bash
+          ARGS=()
+          skip=0
+          for arg in "$@"; do
+            if [ $skip -eq 1 ]; then
+              skip=0
+              continue
+            fi
+            case "$arg" in
+              # 丢弃已知的 Clang 专有选项
+              -mlittle-endian|-mbig-endian|-EL|-EB|-mno-global-merge|-mno-implicit-float|-meabi|-Qunused-arguments|-no-integrated-as)
+                ;;
+              # 丢弃所有 -W 开头的警告选项
+              -W*)
+                ;;
+              # 处理 --target 和 -target（带等号或空格分隔）
+              --target|-target)
+                skip=1
+                ;;
+              --target=*|-target=*)
+                ;;
+              # 处理 --gcc-toolchain 和 -gcc-toolchain
+              --gcc-toolchain|-gcc-toolchain)
+                skip=1
+                ;;
+              --gcc-toolchain=*|-gcc-toolchain=*)
+                ;;
+              *)
+                ARGS+=("$arg")
+                ;;
+            esac
+          done
+          exec /usr/bin/gcc "${ARGS[@]}"
+          EOF
+          chmod +x /tmp/gcc-filter-v3
+          # 覆盖 Makefile 第一行的 CC 定义
+          sed -i '1s|.*|override CC := /tmp/gcc-filter-v3|' scripts/mod/Makefile
+
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
