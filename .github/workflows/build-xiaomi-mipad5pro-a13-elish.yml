@@ -178,91 +178,17 @@ jobs:
 
           echo "==> Done. All Droidspaces essentials have been injected."
       
+
+      - name: 🔧 Force Clang integrated assembler for all targets
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          # 将顶层 Makefile 中的 AS 定义改为直接使用 CC 并添加 -c 选项
+          sed -i 's/^AS\s*=.*/AS = $(CC) -c/' Makefile
+
       - name: 🔧 Fix Clang assembly & dtc yylloc
         run: |
           echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
-
-      - name: 🔧 Fix scripts/mod – GCC with option filter (robust)
-        run: |
-          cd $GITHUB_WORKSPACE/device_kernel
-          cat > /tmp/gcc-filter << 'EOF'
-          #!/bin/bash
-          ARGS=()
-          skip_next=0
-          for arg in "$@"; do
-            if [ $skip_next -eq 1 ]; then
-              skip_next=0
-              continue
-            fi
-            case "$arg" in
-              # 丢弃已知的 Clang 专有选项
-              -mlittle-endian|-mbig-endian|-EL|-EB|-mno-global-merge|-mno-implicit-float|-meabi|-Qunused-arguments|-no-integrated-as)
-                ;;
-              # 丢弃所有 -W 开头的警告选项
-              -W*)
-                ;;
-              # 对于 --target，如果后面不带 =，则连带着跳过下一个参数（也就是目标三元组）
-              --target)
-                skip_next=1
-                ;;
-              # 过滤掉带 = 的 --target 和 --gcc-toolchain
-              --target=*|--gcc-toolchain=*)
-                ;;
-              *)
-                ARGS+=("$arg")
-                ;;
-            esac
-          done
-          exec /usr/bin/gcc "${ARGS[@]}"
-          EOF
-          chmod +x /tmp/gcc-filter
-          # 强制 scripts/mod/ 使用这个过滤器
-          sed -i "1i override CC := /tmp/gcc-filter" scripts/mod/Makefile
-          echo "HOSTCC=gcc" >> $GITHUB_ENV
-
-
-      - name: 🔧 Replace gcc-filter with robust version (v3)
-        run: |
-          cd $GITHUB_WORKSPACE/device_kernel
-          cat > /tmp/gcc-filter-v3 << 'EOF'
-          #!/bin/bash
-          ARGS=()
-          skip=0
-          for arg in "$@"; do
-            if [ $skip -eq 1 ]; then
-              skip=0
-              continue
-            fi
-            case "$arg" in
-              # 丢弃已知的 Clang 专有选项
-              -mlittle-endian|-mbig-endian|-EL|-EB|-mno-global-merge|-mno-implicit-float|-meabi|-Qunused-arguments|-no-integrated-as)
-                ;;
-              # 丢弃所有 -W 开头的警告选项
-              -W*)
-                ;;
-              # 处理 --target 和 -target（带等号或空格分隔）
-              --target|-target)
-                skip=1
-                ;;
-              --target=*|-target=*)
-                ;;
-              # 处理 --gcc-toolchain 和 -gcc-toolchain
-              --gcc-toolchain|-gcc-toolchain)
-                skip=1
-                ;;
-              --gcc-toolchain=*|-gcc-toolchain=*)
-                ;;
-              *)
-                ARGS+=("$arg")
-                ;;
-            esac
-          done
-          exec /usr/bin/gcc "${ARGS[@]}"
-          EOF
-          chmod +x /tmp/gcc-filter-v3
-          # 覆盖 Makefile 第一行的 CC 定义
-          sed -i '1s|.*|override CC := /tmp/gcc-filter-v3|' scripts/mod/Makefile
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
