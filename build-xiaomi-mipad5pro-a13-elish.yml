@@ -17,8 +17,8 @@ env:
   KERNEL_BRANCH : "elish-r-oss"
 
   # ========== 工具链 ==========
-  CLANG_SOURCE : "https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git"
-  CLANG_BRANCH : "lineage-20.0"
+  CLANG_SOURCE : "https://github.com/ZyCromerZ/Clang/releases/download/16.0.6-20260510-release/Clang-16.0.6-20260510.tar.gz"
+  CLANG_BRANCH : ""
 
   GCC_GNU : false
   GCC_64_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git"
@@ -45,7 +45,7 @@ env:
 
   # ========== 打包 ==========
   AK3_SOURCE : "https://github.com/osm0sis/AnyKernel3.git"
-  AK3_BRANCH : ""
+  AK3_BRANCH : "master"
   BOOT_SOURCE : ""                                  # 强烈建议填入原厂 boot.img 直链
 
   NEED_DTBO : false
@@ -177,18 +177,43 @@ jobs:
             echo "CONFIG_ANDROID_PARANOID_NETWORK=n" >> ${DEFCONFIG}
 
           echo "==> Done. All Droidspaces essentials have been injected."
+
+          # 新增：禁用 MODVERSIONS，避免 LLD 链接错误
+          echo "# CONFIG_MODVERSIONS is not set" >> ${DEFCONFIG}
+
+          echo "==> Done. All Droidspaces essentials have been injected."
       
+
+      - name: 🔧 Force Clang integrated assembler for all targets
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          # 将顶层 Makefile 中的 AS 定义改为直接使用 CC 并添加 -c 选项
+          sed -i 's/^AS\s*=.*/AS = $(CC) -c/' Makefile
+
+
+
+      - name: 🛠 Fix undefined stpcpy
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          # 内核的 lib/string.c 缺少 stpcpy，手动追加
+          cat >> lib/string.c << 'EOF'
+
+          char *stpcpy(char *dest, const char *src)
+          {
+              size_t len = strlen(src);
+              memcpy(dest, src, len + 1);
+              return dest + len;
+          }
+          EOF         
+
       - name: 🔧 Fix Clang assembly & dtc yylloc
         run: |
           echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
-      - name: 🔧 Force host tools to use gcc (fix -EL error)
+      - name: 🛠 Suppress Clang errors for old kernel code
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel
-          # 让 scripts/mod 目录下的编译使用系统 gcc 而非 clang
-          sed -i '1i CC := gcc' scripts/mod/Makefile
-
+          echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=unused-but-set-variable" >> $GITHUB_ENV       
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
