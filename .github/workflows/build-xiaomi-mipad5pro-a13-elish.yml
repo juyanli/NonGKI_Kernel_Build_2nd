@@ -17,8 +17,8 @@ env:
   KERNEL_BRANCH : "elish-r-oss"
 
   # ========== 工具链 ==========
-  CLANG_SOURCE : "https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git"
-  CLANG_BRANCH : "lineage-20.0"
+  CLANG_SOURCE : "https://github.com/ZyCromerZ/Clang/releases/download/16.0.6-20260510-release/Clang-16.0.6-20260510.tar.gz"
+  CLANG_BRANCH : ""
 
   GCC_GNU : false
   GCC_64_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git"
@@ -183,21 +183,13 @@ jobs:
           echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
-      - name: 🔧 Force host tools to use real gcc (fix -EL error)
+      - name: 🔧 Force scripts/mod to use gcc (override CC)
         run: |
-          # 创建一个假的gcc脚本，它会调用真正的gcc
-          mkdir -p $GITHUB_WORKSPACE/fake-gcc
-          cat > $GITHUB_WORKSPACE/fake-gcc/gcc << 'EOF'
-          #!/bin/bash
-          /usr/bin/gcc "$@"
-          EOF
-          chmod +x $GITHUB_WORKSPACE/fake-gcc/gcc
-          # 将这个假的gcc目录加到PATH最前面，优先级最高
-          echo "$GITHUB_WORKSPACE/fake-gcc" >> $GITHUB_PATH
-
           cd $GITHUB_WORKSPACE/device_kernel
-          # 同时修改Makefile，确保HOSTCC也使用gcc
-          sed -i '1i HOSTCC := gcc' Makefile
+          # 强制 scripts/mod/Makefile 中的 CC 变量为 gcc
+          sed -i '1i override CC := gcc' scripts/mod/Makefile
+          # 同时确保 HOSTCC 环境变量被设置
+          echo "HOSTCC=gcc" >> $GITHUB_ENV
 
 
       - name: 🧰 Patch Kernel of Re:Kernel
