@@ -9,18 +9,18 @@ env:
   DEVICE_NAME : "Xiaomi Pad 5 Pro WiFi"
   DEVICE_CODENAME : "elish"
 
-  CUSTOM_CMDS : ""
-  EXTRA_CMDS : ""
+  CUSTOM_CMDS : "CLANG_TRIPLE=aarch64-linux-gnu-"
+  EXTRA_CMDS : "LD=ld.lld LLVM=1 LLVM_IAS=1"
 
   # ========== 内核源码 ==========
   KERNEL_SOURCE : "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
   KERNEL_BRANCH : "elish-r-oss"
 
   # ========== 工具链 ==========
-  CLANG_SOURCE : ""
+  CLANG_SOURCE : "https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-aarch64-linux-gnu.tar.xz"
   CLANG_BRANCH : ""
 
-  GCC_GNU : true
+  GCC_GNU : false
   GCC_64_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git"
   GCC_64_BRANCH : "android12L-release"
   GCC_32_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git"
@@ -218,7 +218,7 @@ jobs:
       - name: 🛠 Suppress incompatible warnings (GCC9+)
         run: |
           echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=maybe-uninitialized -fno-inline" >> $GITHUB_ENV
-          
+
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
 
