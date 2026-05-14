@@ -192,7 +192,7 @@ jobs:
 
       - name: 🛠 Suppress Clang errors for old kernel code
         run: |
-          echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes" >> $GITHUB_ENV          
+          echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=unused-but-set-variable" >> $GITHUB_ENV       
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
