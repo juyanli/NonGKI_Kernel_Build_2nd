@@ -12,34 +12,34 @@ env:
   CUSTOM_CMDS : "CLANG_TRIPLE=aarch64-linux-gnu-"
   EXTRA_CMDS : "LD=ld.lld LLVM=1 LLVM_IAS=1"
 
-  # ========== 内核源码 ==========
+  # ========== 内核源码（已为你修正）==========
   KERNEL_SOURCE : "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
   KERNEL_BRANCH : "elish-r-oss"
 
   # ========== 工具链 ==========
-  CLANG_SOURCE : "https://github.com/ZyCromerZ/Clang/releases/download/16.0.6-20260510-release/Clang-16.0.6-20260510.tar.gz"
+  CLANG_SOURCE : ""
   CLANG_BRANCH : ""
 
-  GCC_GNU : false
+  GCC_GNU : true
   GCC_64_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git"
   GCC_64_BRANCH : "android12L-release"
   GCC_32_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git"
   GCC_32_BRANCH : "android12L-release"
 
-  # ========== 内核配置 ==========
+  # ========== 内核配置（已修正）==========
   DEFCONFIG_SOURCE: ""
   DEFCONFIG_NAME : "elish_user_defconfig"
   DEFCONFIG_ORIGIN_IMAGE: ""
   DEFCONFIG_FROM_BOOT: false
 
-  # ========== KernelSU ==========
+  # ========== KernelSU（建议保留）==========
   KERNELSU_SOURCE : ""
   KERNELSU_BRANCH : ""
   KERNELSU_AUTO_GET : "false"
   KERNELSU_AUTO_FORK : "magic"
-  KERNELSU_METHOD: "none"  
 
-  # ========== SUSFS ==========
+
+  # ========== SUSFS（一般不需要）==========
   SUSFS_ENABLE : false
   SUSFS_FIXED : false
 
@@ -57,6 +57,8 @@ env:
   PYTHON_VERSION: "3"
   PACK_METHOD: "Anykernel3"
   PACK_KMODULES: "false"
+
+  KERNELSU_METHOD: "none"  
 
   PATCHES_SOURCE: ""
   PATCHES_BRANCH: ""
@@ -125,115 +127,52 @@ jobs:
           DEFCONFIG="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
           echo "==> Adding Droidspaces required configs to ${DEFCONFIG}"
 
-          # IPC机制
-          for opt in CONFIG_SYSVIPC CONFIG_POSIX_MQUEUE; do
-            grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
-          done
-
-          # 核心命名空间支持
-          for opt in CONFIG_NAMESPACES CONFIG_PID_NS CONFIG_UTS_NS CONFIG_IPC_NS CONFIG_NET_NS; do
-            grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
-          done
-
-          # Seccomp支持
-          for opt in CONFIG_SECCOMP CONFIG_SECCOMP_FILTER; do
+          # 基础命名空间
+          for opt in CONFIG_IPC_NS CONFIG_PID_NS CONFIG_NET_NS CONFIG_UTS_NS; do
             grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
           done
 
           # 控制组 (cgroups)
-          for opt in CONFIG_CGROUPS CONFIG_CGROUP_DEVICE CONFIG_CGROUP_PIDS CONFIG_MEMCG \
-                     CONFIG_CGROUP_SCHED CONFIG_FAIR_GROUP_SCHED CONFIG_CGROUP_FREEZER \
-                     CONFIG_CGROUP_NET_PRIO CONFIG_CPUSETS; do
+          for opt in CONFIG_CGROUPS CONFIG_CGROUP_DEVICE CONFIG_CGROUP_FREEZER \
+                     CONFIG_CGROUP_PIDS CONFIG_CPUSETS CONFIG_MEMCG \
+                     CONFIG_DEVPTS_MULTIPLE_INSTANCES; do
             grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
           done
 
           # 文件系统
-          for opt in CONFIG_DEVTMPFS CONFIG_OVERLAY_FS CONFIG_FW_LOADER \
-                     CONFIG_FW_LOADER_USER_HELPER; do
+          for opt in CONFIG_OVERLAY_FS; do
             grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
           done
 
-          # 网络过滤与NAT
-          for opt in CONFIG_VETH CONFIG_BRIDGE CONFIG_NETFILTER \
-                     CONFIG_BRIDGE_NETFILTER CONFIG_NETFILTER_ADVANCED \
-                     CONFIG_NF_CONNTRACK CONFIG_IP_NF_IPTABLES CONFIG_IP_NF_FILTER \
-                     CONFIG_NF_NAT CONFIG_IP_NF_TARGET_MASQUERADE \
-                     CONFIG_NETFILTER_XT_TARGET_MASQUERADE \
-                     CONFIG_NETFILTER_XT_TARGET_TCPMSS \
-                     CONFIG_NETFILTER_XT_MATCH_ADDRTYPE \
-                     CONFIG_NETFILTER_XT_MATCH_OWNER CONFIG_NETFILTER_XT_MARK \
-                     CONFIG_NETFILTER_XT_TARGET_LOG \
-                     CONFIG_NF_CONNTRACK_NETLINK CONFIG_NF_NAT_REDIRECT \
-                     CONFIG_IP_ADVANCED_ROUTER CONFIG_IP_MULTIPLE_TABLES \
+          # 网络过滤与 NAT（Droidspaces 硬性依赖）
+          for opt in CONFIG_NETFILTER_XT_MATCH_OWNER CONFIG_NETFILTER_XT_MARK \
+                     CONFIG_NETFILTER_XT_TARGET_LOG CONFIG_NF_NAT \
                      CONFIG_NF_NAT_IPV4 CONFIG_IP_NF_NAT \
                      CONFIG_NF_NAT_MASQUERADE_IPV4 CONFIG_NETFILTER_XT_MATCH_CGROUP \
-                     CONFIG_NETFILTER_XT_MATCH_CONNTRACK \
+                     CONFIG_NETFILTER_XT_MATCH_CONNTRACK CONFIG_VETH \
                      CONFIG_NET_IPIP CONFIG_IPV6; do
             grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
           done
 
-          # 禁用Android偏执网络
-          grep -q "^CONFIG_ANDROID_PARANOID_NETWORK=n" ${DEFCONFIG} || \
-            echo "CONFIG_ANDROID_PARANOID_NETWORK=n" >> ${DEFCONFIG}
-
-          # 先删除可能存在的 MODVERSIONS 配置，再重新添加禁用
-          sed -i '/CONFIG_MODVERSIONS/d' ${DEFCONFIG}
-          echo "# CONFIG_MODVERSIONS is not set" >> ${DEFCONFIG}
-
           echo "==> Done. All Droidspaces essentials have been injected."
-      
-
-      - name: 🔧 Force Clang integrated assembler for all targets
-        run: |
-          cd $GITHUB_WORKSPACE/device_kernel
-          # 将顶层 Makefile 中的 AS 定义改为直接使用 CC 并添加 -c 选项
-          sed -i 's/^AS\s*=.*/AS = $(CC) -c/' Makefile
-         
-
-
-      - name: 🛠 Fix undefined stpcpy
-        run: |
-          cd $GITHUB_WORKSPACE/device_kernel
-          # 安全地添加 stpcpy 声明
-          if ! grep -q 'stpcpy' include/linux/string.h; then
-            echo 'char *stpcpy(char *dest, const char *src);' >> include/linux/string.h
-          fi
-          # 清理可能意外写入的 EOF 行
-          sed -i '/^EOF$/d' lib/string.c
-          # 如果尚未添加 stpcpy 定义，则追加
-          if ! grep -q 'stpcpy' lib/string.c; then
-            cat >> lib/string.c << 'STPCPY_EOF'
-          char *stpcpy(char *dest, const char *src)
-          {
-              size_t len = strlen(src);
-              memcpy(dest, src, len + 1);
-              return dest + len;
-          }
-          STPCPY_EOF
-          fi       
-
-      - name: 🔧 Fix Clang assembly & dtc yylloc
-        run: |
-          echo "AS=clang" >> $GITHUB_ENV
-          echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
-
-      - name: 🛠 Suppress Clang errors for old kernel code
-        run: |
-          echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=unused-but-set-variable" >> $GITHUB_ENV       
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
-      - name: 🧹 Clean previous build artifacts
+      - name: 🔒 Patch Kernel of Baseband Guard
+        uses: ./.github/workflows/patch-baseband-guard
+
+      - name: 🔧 Patch Hide Stuff
+        uses: ./.github/workflows/patch-hide-stuff
+
+      - name: 🔧 Fix Compile Env (LLVM & fcommon)
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel
-          rm -rf out        
+          echo "LLVM=1" >> $GITHUB_ENV
+          echo "LLVM_IAS=1" >> $GITHUB_ENV
+          echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
-        env:
-          CC: clang     
-          LDFLAGS_vmlinux: --no-undefined-version   
 
       - name: 🔩 Pack Process
         uses: ./.github/workflows/pack-process
