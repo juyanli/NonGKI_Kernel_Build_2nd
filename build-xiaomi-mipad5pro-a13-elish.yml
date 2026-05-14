@@ -1,0 +1,169 @@
+name: Build Droidspaces Kernel for elish
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  # ========== 设备信息 ==========
+  DEVICE_NAME : "Xiaomi Pad 5 Pro WiFi"
+  DEVICE_CODENAME : "elish"
+
+  CUSTOM_CMDS : "CLANG_TRIPLE=aarch64-linux-gnu-"
+  EXTRA_CMDS : "LD=ld.lld LLVM=1 LLVM_IAS=1"
+
+  # ========== 内核源码（已为你修正）==========
+  KERNEL_SOURCE : "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
+  KERNEL_BRANCH : "elish-r-oss"
+
+  # ========== 工具链 ==========
+  CLANG_SOURCE : "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-Linux-X64.tar.xz"
+  CLANG_BRANCH : ""
+
+  GCC_GNU : false
+  GCC_64_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git"
+  GCC_64_BRANCH : "android12L-release"
+  GCC_32_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git"
+  GCC_32_BRANCH : "android12L-release"
+
+  # ========== 内核配置（已修正）==========
+  DEFCONFIG_SOURCE: ""
+  DEFCONFIG_NAME : "elish_user_defconfig"
+  DEFCONFIG_ORIGIN_IMAGE: ""
+  DEFCONFIG_FROM_BOOT: false
+
+  # ========== KernelSU（建议保留）==========
+  KERNELSU_SOURCE : ""
+  KERNELSU_BRANCH : ""
+  KERNELSU_AUTO_GET : "true"
+  KERNELSU_AUTO_FORK : "magic"
+
+  # ========== SUSFS（一般不需要）==========
+  SUSFS_ENABLE : false
+  SUSFS_FIXED : false
+
+  # ========== 打包 ==========
+  AK3_SOURCE : "https://github.com/osm0sis/AnyKernel3.git"
+  AK3_BRANCH : "master"
+  BOOT_SOURCE : ""                                  # 强烈建议填入原厂 boot.img 直链
+
+  NEED_DTBO : false
+  NEED_SAFE_DTBO : false
+
+  ROM_TEXT : "elish_stock"
+
+  # ========== 其他环境 ==========
+  PYTHON_VERSION: "3"
+  PACK_METHOD: "Anykernel3"
+  PACK_KMODULES: "false"
+
+  KERNELSU_METHOD: "shell"
+
+  PATCHES_SOURCE: ""
+  PATCHES_BRANCH: ""
+
+  SUSFS_FOLDER_FIXED: ""
+  SUSFS_PATCH_FIXED: ""
+
+  REKERNEL_ENABLE: "false"
+  HOOK_METHOD: "syscall"
+  KERNEL_PATCH: "false"
+
+  KPM_ENABLE: "false"
+  KPM_INLINE: "false"
+  KPM_KPATCH_NEXT: "false"
+  KPM_PATCH_SOURCE: ""
+
+  BASEBAND_GUARD_ENABLE: "false"
+  BASEBAND_GUARD_BOOT: "false"
+
+  HIDE_STUFF: "false"
+
+  GENERATE_DTB: "false"
+  GENERATE_CHIP: "qcom"
+
+  BUILD_DEBUGGER: "false"
+  SKIP_PATCH: "false"
+
+  BUILD_OTHER_CONFIG: "false"
+  MERGE_CONFIG_FILES: ""
+
+  FREE_MORE_SPACE: "false"
+
+jobs:
+  build-kernel:
+    name: Build Kernel
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_HARDLINK: "true"
+
+    steps:
+      - name: ⏰ Checkout repository
+        uses: actions/checkout@v6
+
+      - name: ⌛️ Compilation environment preparation
+        uses: ./.github/workflows/build-env
+
+      - name: ⚙️ Get neccssary tools
+        uses: ./.github/workflows/build-ready
+
+      - name: 🪝 Patch Kernel of SUSFS
+        uses: ./.github/workflows/patch-susfs
+
+      - name: 🔗 Patch for no-kprobe
+        uses: ./.github/workflows/patch-no-kprobe
+
+      - name: 🪛 Extra Kernel Options (Droidspaces Config)
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel || cd $GITHUB_WORKSPACE
+          DEFCONFIG="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
+          echo "==> Adding Droidspaces required configs to ${DEFCONFIG}"
+
+          # 基础命名空间
+          for opt in CONFIG_IPC_NS CONFIG_PID_NS CONFIG_NET_NS CONFIG_UTS_NS; do
+            grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
+          done
+
+          # 控制组 (cgroups)
+          for opt in CONFIG_CGROUPS CONFIG_CGROUP_DEVICE CONFIG_CGROUP_FREEZER \
+                     CONFIG_CGROUP_PIDS CONFIG_CPUSETS CONFIG_MEMCG \
+                     CONFIG_DEVPTS_MULTIPLE_INSTANCES; do
+            grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
+          done
+
+          # 文件系统
+          for opt in CONFIG_OVERLAY_FS; do
+            grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
+          done
+
+          # 网络过滤与 NAT（Droidspaces 硬性依赖）
+          for opt in CONFIG_NETFILTER_XT_MATCH_OWNER CONFIG_NETFILTER_XT_MARK \
+                     CONFIG_NETFILTER_XT_TARGET_LOG CONFIG_NF_NAT \
+                     CONFIG_NF_NAT_IPV4 CONFIG_IP_NF_NAT \
+                     CONFIG_NF_NAT_MASQUERADE_IPV4 CONFIG_NETFILTER_XT_MATCH_CGROUP \
+                     CONFIG_NETFILTER_XT_MATCH_CONNTRACK CONFIG_VETH \
+                     CONFIG_NET_IPIP CONFIG_IPV6; do
+            grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
+          done
+
+          echo "==> Done. All Droidspaces essentials have been injected."
+
+      - name: 🧰 Patch Kernel of Re:Kernel
+        uses: ./.github/workflows/patch-rekernel
+
+      - name: 🔒 Patch Kernel of Baseband Guard
+        uses: ./.github/workflows/patch-baseband-guard
+
+      - name: 🔧 Patch Hide Stuff
+        uses: ./.github/workflows/patch-hide-stuff
+
+      - name: 🚀 Build Process
+        uses: ./.github/workflows/build-process
+
+      - name: 🔩 Pack Process
+        uses: ./.github/workflows/pack-process
+
+      - name: ✏️ Upload Artifacts
+        uses: ./.github/workflows/upload-files
