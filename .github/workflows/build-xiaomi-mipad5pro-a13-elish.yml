@@ -198,6 +198,11 @@ jobs:
         run: |
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
+      - name: 🛠 Override CC to bypass gcc-wrapper
+        run: |
+          echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
+
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
 
