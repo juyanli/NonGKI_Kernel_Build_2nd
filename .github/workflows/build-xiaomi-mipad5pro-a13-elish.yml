@@ -58,7 +58,7 @@ env:
   PACK_METHOD: "Anykernel3"
   PACK_KMODULES: "false"
 
-  KERNELSU_METHOD: "shell"  
+  KERNELSU_METHOD: "none"  
 
   PATCHES_SOURCE: ""
   PATCHES_BRANCH: ""
