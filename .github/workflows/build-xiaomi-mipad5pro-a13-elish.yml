@@ -194,8 +194,9 @@ jobs:
       - name: 🛠 Fix undefined stpcpy
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          # 添加 stpcpy 声明和定义
-          sed -i '/__FORTIFY_INLINE/a char *stpcpy(char *dest, const char *src);' include/linux/string.h
+          # 在 string.h 末尾安全地追加声明
+          echo 'char *stpcpy(char *dest, const char *src);' >> include/linux/string.h
+          # 在 string.c 末尾追加定义
           cat >> lib/string.c << 'EOF'
 
           char *stpcpy(char *dest, const char *src)
@@ -204,7 +205,7 @@ jobs:
               memcpy(dest, src, len + 1);
               return dest + len;
           }
-          EOF        
+          EOF       
 
       - name: 🔧 Fix Clang assembly & dtc yylloc
         run: |
