@@ -176,9 +176,8 @@ jobs:
           grep -q "^CONFIG_ANDROID_PARANOID_NETWORK=n" ${DEFCONFIG} || \
             echo "CONFIG_ANDROID_PARANOID_NETWORK=n" >> ${DEFCONFIG}
 
-          echo "==> Done. All Droidspaces essentials have been injected."
-
-          # 新增：禁用 MODVERSIONS，避免 LLD 链接错误
+          # 先删除可能存在的 MODVERSIONS 配置，再重新添加禁用
+          sed -i '/CONFIG_MODVERSIONS/d' ${DEFCONFIG}
           echo "# CONFIG_MODVERSIONS is not set" >> ${DEFCONFIG}
 
           echo "==> Done. All Droidspaces essentials have been injected."
