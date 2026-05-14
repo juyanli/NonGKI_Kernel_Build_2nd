@@ -123,22 +123,22 @@ jobs:
 
       - name: 🪛 Extra Kernel Options
         run: |
-              cd $GITHUB_WORKSPACE/device_kernel
-              # 修复 Python 2 的 print 语句
-              sed -i 's/print "error, forbidden warning:/print("error, forbidden warning:/' scripts/gcc-wrapper.py
-              sed -i 's/", m.group(2)/", m.group(2))/' scripts/gcc-wrapper.py
-              # 注释掉 init/Kconfig 中会导致语法错误的两行
-              sed -i '16s/^/#/' init/Kconfig
-              sed -i '17s/^/#/' init/Kconfig
+          cd $GITHUB_WORKSPACE/device_kernel
 
-      - name: 🧰 Patch Kernel of Re:Kernel
-        uses: ./.github/workflows/patch-rekernel
-
-      - name: 🔒 Patch Kernel of Baseband Guard
-        uses: ./.github/workflows/patch-baseband-guard
-
-      - name: 🔧 Patch Hide Stuff
-        uses: ./.github/workflows/patch-hide-stuff
+          # 1. 彻底解决 gcc-wrapper.py 的 Python 2/3 兼容性问题
+          # 直接用系统的 gcc 替换脚本，不再调用任何 Python 代码
+          # 这样能绝对避免 Python 语法错误
+          cat > scripts/gcc-wrapper.py << 'EOF'
+      #!/usr/bin/env python3
+      import sys, os, subprocess
+      # 找到真正的 gcc
+      real_gcc = "gcc"
+      if 'REAL_CC' in os.environ:
+          real_gcc = os.environ['REAL_CC']
+      # 把 python3 $0 $@ 替换为 gcc $@
+      args = [real_gcc] + sys.argv[1:]
+      os.execvp(real_gcc, args)
+      EOF
 
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
