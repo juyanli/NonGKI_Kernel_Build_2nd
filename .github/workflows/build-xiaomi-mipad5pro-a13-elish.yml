@@ -45,7 +45,7 @@ env:
 
   # ========== 打包 ==========
   AK3_SOURCE : "https://github.com/osm0sis/AnyKernel3.git"
-  AK3_BRANCH : "master"
+  AK3_BRANCH : ""
   BOOT_SOURCE : ""                                  # 强烈建议填入原厂 boot.img 直链
 
   NEED_DTBO : false
