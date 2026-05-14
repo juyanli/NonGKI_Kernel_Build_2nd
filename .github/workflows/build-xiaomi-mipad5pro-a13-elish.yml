@@ -217,6 +217,11 @@ jobs:
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
+      - name: 🧹 Clean previous build artifacts
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          rm -rf out        
+
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
         env:
