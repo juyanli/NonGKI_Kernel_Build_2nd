@@ -100,7 +100,7 @@ jobs:
       CCACHE_HARDLINK: "true"
 
     steps:
-      - name: �? Checkout repository
+      - name: ⏰ Checkout repository
         uses: actions/checkout@v6
 
       - name: ⌛️ Compilation environment preparation
