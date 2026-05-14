@@ -181,9 +181,15 @@ jobs:
       - name: 🧹 Fix gcc-wrapper.py for Python 3
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          git checkout -- scripts/gcc-wrapper.py          # 确保是原版文件
-          python3 -m lib2to3 -w scripts/gcc-wrapper.py    # 用标准库自动转换
-
+          # 确保脚本是原始文件
+          git checkout -- scripts/gcc-wrapper.py
+          # 修复 print 语句: 添加括号
+          sed -i 's/^\([[:space:]]*\)print "\(.*\)"[[:space:]]*$/\1print("\2")/g' scripts/gcc-wrapper.py
+          # 修复 print 语句: 移除行尾逗号 (print line,)
+          sed -i 's/^\([[:space:]]*\)print \([^,]*\),$/\1print(\2)/g' scripts/gcc-wrapper.py
+          # 修复特殊语法: print >> sys.stderr, ...
+          sed -i "s/^\([[:space:]]*\)print >> \([^,]*\), \(.*\)$/\1print(\3, file=\2)/g" scripts/gcc-wrapper.py
+          echo "gcc-wrapper.py patched successfully for Python 3."
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
 
