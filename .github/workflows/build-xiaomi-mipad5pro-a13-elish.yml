@@ -171,13 +171,11 @@ jobs:
           echo "LLVM_IAS=1" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
-      - name: 🧹 Disable incompatible gcc-wrapper
+      - name: 🧹 Fix gcc-wrapper.py for Python 3
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          if [ -f scripts/gcc-wrapper.py ]; then
-            echo "Renaming gcc-wrapper.py to disable it..."
-            mv scripts/gcc-wrapper.py scripts/gcc-wrapper.py.bak
-          fi
+          echo "Fixing Python 2 style print in gcc-wrapper.py..."
+          sed -i 's/print "error, forbidden warning:", m.group(2)/print("error, forbidden warning:", m.group(2))/' scripts/gcc-wrapper.py
 
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
