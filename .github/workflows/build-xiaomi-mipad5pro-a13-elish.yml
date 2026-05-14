@@ -183,6 +183,13 @@ jobs:
           echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
+      - name: 🔧 Force host tools to use gcc (fix -EL error)
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          # 让 scripts/mod 目录下的编译使用系统 gcc 而非 clang
+          sed -i '1i CC := gcc' scripts/mod/Makefile
+
+
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
