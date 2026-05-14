@@ -183,12 +183,29 @@ jobs:
           echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
-      - name: 🔧 Force scripts/mod to use gcc (override CC)
+      - name: 🔧 Fix scripts/mod – GCC with option filter
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          # 强制 scripts/mod/Makefile 中的 CC 变量为 gcc
-          sed -i '1i override CC := gcc' scripts/mod/Makefile
-          # 同时确保 HOSTCC 环境变量被设置
+          # 创建一个脚本，过滤掉 Clang 特有的参数后调用真正的 gcc
+          cat > /tmp/gcc-filter << 'EOF'
+          #!/bin/bash
+          ARGS=()
+          for arg in "$@"; do
+            case "$arg" in
+              -mlittle-endian|-mbig-endian|-EL|-EB|-mno-global-merge|-mno-implicit-float|-meabi|-Qunused-arguments|-no-integrated-as)
+                ;;  # 丢弃这些 Clang 参数
+              --target=*|--gcc-toolchain=*)
+                ;;  # 丢弃
+              *)
+                ARGS+=("$arg")
+                ;;
+            esac
+          done
+          exec /usr/bin/gcc "${ARGS[@]}"
+          EOF
+          chmod +x /tmp/gcc-filter
+          # 强制 scripts/mod/ 使用这个过滤器
+          sed -i "1i override CC := /tmp/gcc-filter" scripts/mod/Makefile
           echo "HOSTCC=gcc" >> $GITHUB_ENV
 
 
