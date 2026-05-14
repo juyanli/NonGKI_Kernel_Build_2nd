@@ -188,7 +188,7 @@ jobs:
           cd $GITHUB_WORKSPACE/device_kernel
           # 将顶层 Makefile 中的 AS 定义改为直接使用 CC 并添加 -c 选项
           sed -i 's/^AS\s*=.*/AS = $(CC) -c/' Makefile
-          echo "LDFLAGS_vmlinux += --no-undefined-version" >> Makefile          
+         
 
 
       - name: 🛠 Fix undefined stpcpy
@@ -227,7 +227,8 @@ jobs:
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
         env:
-          CC: clang        
+          CC: clang     
+          LDFLAGS_vmlinux: --no-undefined-version   
 
       - name: 🔩 Pack Process
         uses: ./.github/workflows/pack-process
