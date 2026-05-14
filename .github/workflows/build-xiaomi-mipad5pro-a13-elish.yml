@@ -215,6 +215,10 @@ jobs:
         run: |
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
+      - name: 🛠 Suppress incompatible warnings (GCC9+)
+        run: |
+          echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=maybe-uninitialized" >> $GITHUB_ENV
+
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
 
