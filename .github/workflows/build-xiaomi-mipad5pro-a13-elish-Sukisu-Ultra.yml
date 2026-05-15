@@ -38,7 +38,7 @@ env:
   KERNELSU_AUTO_GET : "false"
   KERNELSU_AUTO_FORK : ""
   # ★ 当前使用 Magisk，设为 'none' 跳过 KernelSU；将来切换回 KSU 时改为 'manual' 或 'shell' ★
-  KERNELSU_METHOD: "shell"  
+  KERNELSU_METHOD: "none"  
 
   # ========== SUSFS（保持原有能力）==========
   SUSFS_ENABLE : false
@@ -113,10 +113,10 @@ jobs:
 
       # ========== ★ 条件集成 KernelSU（仅在需要时执行，保留完整流程）★ ==========
       - name: 🧰 Integrate SukiSU-Ultra (Non-GKI)
-        if: ${{ env.KERNELSU_METHOD != 'none' }}
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
           curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s main
+
 
 
       - name: 🪝 Patch Kernel of SUSFS
