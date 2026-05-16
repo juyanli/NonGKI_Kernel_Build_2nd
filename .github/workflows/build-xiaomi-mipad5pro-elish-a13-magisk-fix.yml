@@ -1,22 +1,22 @@
-name: Build non-GKI Kernel for elish(magisk fix)
+name: Build Droidspaces Kernel for elish
 
 on:
   workflow_call:
   workflow_dispatch:
 
 env:
-  # ========== Éè±¸ĞÅÏ¢ ==========
+  # ========== è®¾å¤‡ä¿¡æ¯ ==========
   DEVICE_NAME : "Xiaomi Pad 5 Pro WiFi"
   DEVICE_CODENAME : "elish"
 
   CUSTOM_CMDS : "CLANG_TRIPLE=aarch64-linux-gnu-"
   EXTRA_CMDS : "LD=ld.lld LLVM=1 LLVM_IAS=1"
 
-  # ========== ÄÚºËÔ´Âë ==========
+  # ========== å†…æ ¸æºç  ==========
   KERNEL_SOURCE : "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
   KERNEL_BRANCH : "elish-r-oss"
 
-  # ========== ¹¤¾ßÁ´ ==========
+  # ========== å·¥å…·é“¾ ==========
   CLANG_SOURCE : "https://github.com/ZyCromerZ/Clang/releases/download/16.0.6-20260510-release/Clang-16.0.6-20260510.tar.gz"
   CLANG_BRANCH : ""
 
@@ -26,37 +26,37 @@ env:
   GCC_32_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git"
   GCC_32_BRANCH : "android12L-release"
 
-  # ========== ÄÚºËÅäÖÃ ==========
+  # ========== å†…æ ¸é…ç½® ==========
   DEFCONFIG_SOURCE: ""
   DEFCONFIG_NAME : "elish_user_defconfig"
   DEFCONFIG_ORIGIN_IMAGE: ""
   DEFCONFIG_FROM_BOOT: false
 
-  # ========== KernelSU£¨±£ÁôÍêÕû¹¦ÄÜ£¬Í¨¹ı±äÁ¿¿ØÖÆÊÇ·ñ¼¯³É£©==========
+  # ========== KernelSUï¼ˆä¿ç•™å®Œæ•´åŠŸèƒ½ï¼Œé€šè¿‡å˜é‡æ§åˆ¶æ˜¯å¦é›†æˆï¼‰==========
   KERNELSU_SOURCE : ""
   KERNELSU_BRANCH : ""
   KERNELSU_AUTO_GET : "false"
   KERNELSU_AUTO_FORK : "magic"
-  # ¡ï µ±Ç°Ê¹ÓÃ Magisk£¬ÉèÎª 'none' Ìø¹ı KernelSU£»½«À´ÇĞ»»»Ø KSU Ê±¸ÄÎª 'manual' »ò 'shell' ¡ï
+  # â˜… å½“å‰ä½¿ç”¨ Magiskï¼Œè®¾ä¸º 'none' è·³è¿‡ KernelSUï¼›å°†æ¥åˆ‡æ¢å› KSU æ—¶æ”¹ä¸º 'manual' æˆ– 'shell' â˜…
   KERNELSU_METHOD: "none"  
 
-  # ========== SUSFS£¨±£³ÖÔ­ÓĞÄÜÁ¦£©==========
+  # ========== SUSFSï¼ˆä¿æŒåŸæœ‰èƒ½åŠ›ï¼‰==========
   SUSFS_ENABLE : false
   SUSFS_FIXED : false
 
-  # ========== ´ò°ü ==========
+  # ========== æ‰“åŒ… ==========
   AK3_SOURCE : "https://github.com/osm0sis/AnyKernel3.git"
   AK3_BRANCH : "master"
   BOOT_SOURCE : "https://github.com/juyanli/NonGKI_Kernel_Build_2nd/releases/download/1778048236/boot.img"
   DTOBO_SOURCE : "https://github.com/juyanli/NonGKI_Kernel_Build_2nd/releases/download/1778048236/dtbo.img"
 
-  # ¡ï Ğ¡Ã×Æ½°å 5 Pro ĞèÒª dtbo£¬±ØĞëÎª true ¡ï
+  # â˜… å°ç±³å¹³æ¿ 5 Pro éœ€è¦ dtboï¼Œå¿…é¡»ä¸º true â˜…
   NEED_DTBO : true
   NEED_SAFE_DTBO : false
 
   ROM_TEXT : "elish_stock"
 
-  # ========== ÆäËû»·¾³ ==========
+  # ========== å…¶ä»–ç¯å¢ƒ ==========
   PYTHON_VERSION: "3"
   PACK_METHOD: "Anykernel3"
   PACK_KMODULES: "false"
@@ -102,35 +102,35 @@ jobs:
       CCACHE_HARDLINK: "true"
 
     steps:
-      - name: ? Checkout repository
+      - name: â° Checkout repository
         uses: actions/checkout@v6
 
-      - name: ?? Compilation environment preparation
+      - name: âŒ›ï¸ Compilation environment preparation
         uses: ./.github/workflows/build-env
 
-      - name: ?? Get neccssary tools
+      - name: âš™ï¸ Get neccssary tools
         uses: ./.github/workflows/build-ready
 
-      - name: ? Integrate Magic-KernelSU (enabled only when KERNELSU_METHOD != 'none')
+      - name: ğŸ§° Integrate Magic-KernelSU (enabled only when KERNELSU_METHOD != 'none')
         if: ${{ env.KERNELSU_METHOD != 'none' }}
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
           curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash -s main
 
-      - name: ? Patch Kernel of SUSFS
+      - name: ğŸª Patch Kernel of SUSFS
         uses: ./.github/workflows/patch-susfs
 
-      - name: ? Patch for no-kprobe
+      - name: ğŸ”— Patch for no-kprobe
         uses: ./.github/workflows/patch-no-kprobe
 
-      # ========== ¡ï ÍêÕûÄÚºËÑ¡Ïî£ºDroidspaces ¹Ù·½·Ç GKI + Magisk + PSTORE ¡ï ==========
-      - name: ? Extra Kernel Options (Droidspaces Official Non-GKI + Magisk + PSTORE)
+      # ========== â˜… å®Œæ•´å†…æ ¸é€‰é¡¹ï¼šDroidspaces å®˜æ–¹é GKI + Magisk + PSTORE â˜… ==========
+      - name: ğŸª› Extra Kernel Options (Droidspaces Official Non-GKI + Magisk + PSTORE)
         run: |
           cd $GITHUB_WORKSPACE/device_kernel || cd $GITHUB_WORKSPACE
           DEFCONFIG="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
           echo "==> Adding Droidspaces official non-GKI configs to ${DEFCONFIG}"
 
-          # --- ¹Ù·½·Ç GKI (¡Ü4.19) È«²¿±ØĞèÏî ---
+          # --- å®˜æ–¹é GKI (â‰¤4.19) å…¨éƒ¨å¿…éœ€é¡¹ ---
           for opt in CONFIG_SYSCTL CONFIG_SYSVIPC CONFIG_POSIX_MQUEUE \
                      CONFIG_NAMESPACES CONFIG_PID_NS CONFIG_UTS_NS CONFIG_IPC_NS \
                      CONFIG_SECCOMP CONFIG_SECCOMP_FILTER \
@@ -153,26 +153,26 @@ jobs:
             grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
           done
           
-          # ÏÔÊ½½ûÓÃ Android Æ«Ö´ÍøÂç
+          # æ˜¾å¼ç¦ç”¨ Android åæ‰§ç½‘ç»œ
           grep -q "^CONFIG_ANDROID_PARANOID_NETWORK=n" ${DEFCONFIG} || \
             echo "CONFIG_ANDROID_PARANOID_NETWORK=n" >> ${DEFCONFIG}
 
-          # ÏÈÉ¾³ı¿ÉÄÜ´æÔÚµÄ MODVERSIONS ÅäÖÃ£¬ÔÙÖØĞÂÌí¼Ó½ûÓÃ
+          # å…ˆåˆ é™¤å¯èƒ½å­˜åœ¨çš„ MODVERSIONS é…ç½®ï¼Œå†é‡æ–°æ·»åŠ ç¦ç”¨
           sed -i '/CONFIG_MODVERSIONS/d' ${DEFCONFIG}
           echo "# CONFIG_MODVERSIONS is not set" >> ${DEFCONFIG}
           
-          # ========== ¡ï Magisk ËùĞèÅäÖÃ ¡ï ==========
+          # ========== â˜… Magisk æ‰€éœ€é…ç½® â˜… ==========
           grep -q "^CONFIG_DEVPTS_MULTIPLE_INSTANCES=y" ${DEFCONFIG} || \
             echo "CONFIG_DEVPTS_MULTIPLE_INSTANCES=y" >> ${DEFCONFIG}
           
-          # ========== ¡ï PSTORE / RAMOOPS (ÄÚºË±ÀÀ£ÈÕÖ¾) ¡ï ==========
+          # ========== â˜… PSTORE / RAMOOPS (å†…æ ¸å´©æºƒæ—¥å¿—) â˜… ==========
           for opt in CONFIG_PSTORE CONFIG_PSTORE_CONSOLE CONFIG_PSTORE_RAM CONFIG_RAMOOPS; do
             grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
           done
           
           echo "==> Done. All Droidspaces official configs + Magisk + PSTORE have been injected."
 
-      - name: ? Fix undefined stpcpy
+      - name: ğŸ›  Fix undefined stpcpy
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
           if ! grep -q 'stpcpy' include/linux/string.h; then
@@ -190,25 +190,25 @@ jobs:
           STPCPY_EOF
           fi
 
-      - name: ? Fix Clang assembly & dtc yylloc
+      - name: ğŸ”§ Fix Clang assembly & dtc yylloc
         run: |
           echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
-      - name: ? Suppress Clang errors for old kernel code
+      - name: ğŸ›  Suppress Clang errors for old kernel code
         run: |
           echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=unused-but-set-variable" >> $GITHUB_ENV
 
-      - name: ? Patch Kernel of Re:Kernel
+      - name: ğŸ§° Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
-      - name: ? Clean previous build artifacts
+      - name: ğŸ§¹ Clean previous build artifacts
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
           rm -rf out
 
-      # ========== ¡ï ×¼±¸ dtbo.img£¨½â¾öÆÁÄ»ÏÔÊ¾ÎÊÌâ£©¡ï ==========
-      - name: ? Prepare dtbo.img for packaging
+      # ========== â˜… å‡†å¤‡ dtbo.imgï¼ˆè§£å†³å±å¹•æ˜¾ç¤ºé—®é¢˜ï¼‰â˜… ==========
+      - name: ğŸ“¦ Prepare dtbo.img for packaging
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
           mkdir -p out/arch/arm64/boot
@@ -240,16 +240,16 @@ jobs:
             echo "dtbo.img not available. Display/touch may not work properly."
           fi
 
-      - name: ? Build Process
+      - name: ğŸš€ Build Process
         uses: ./.github/workflows/build-process
         env:
           CC: clang
           LDFLAGS_vmlinux: --no-undefined-version
 
-      - name: ? Pack Process
+      - name: ğŸ”© Pack Process
         uses: ./.github/workflows/pack-process
 
-      - name: ? Validate final package
+      - name: âœ… Validate final package
         run: |
           ZIPFILE=$(ls $GITHUB_WORKSPACE/device_kernel/*-Anykernel3.zip | head -1)
           if [[ -z "$ZIPFILE" ]]; then
@@ -259,10 +259,10 @@ jobs:
           echo "Final package: $ZIPFILE"
           unzip -l "$ZIPFILE" | head -20
           if unzip -l "$ZIPFILE" | grep -q "dtbo.img"; then
-            echo "? dtbo.img is included in the package."
+            echo "âœ… dtbo.img is included in the package."
           else
-            echo "?? dtbo.img is NOT included. Screen display may be abnormal."
+            echo "âš ï¸ dtbo.img is NOT included. Screen display may be abnormal."
           fi
 
-      - name: ?? Upload Artifacts
+      - name: âœï¸ Upload Artifacts
         uses: ./.github/workflows/upload-files
