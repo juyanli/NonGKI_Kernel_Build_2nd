@@ -172,6 +172,19 @@ jobs:
           
           echo "==> Done. All Droidspaces official configs + Magisk + PSTORE have been injected."
 
+      - name: 🧹 Deep Clean and Force Disable KSU
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          # 1. 彻底恢复内核源码到原始状态，移除所有可能的残留
+          git checkout -- .
+          git clean -fd
+          # 2. 删除 KSU 残留目录（如果存在）
+          rm -rf drivers/kernelsu KernelSU
+          # 3. 通过环境变量明确禁止 KernelSU 被自动集成
+          echo "KERNELSU_METHOD=none" >> $GITHUB_ENV
+          echo "KERNELSU_AUTO_GET=false" >> $GITHUB_ENV
+          echo "KernelSU aggressively disabled and source cleaned."
+
       - name: 🛠 Fix undefined stpcpy
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
