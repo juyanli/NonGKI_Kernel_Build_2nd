@@ -195,10 +195,22 @@ jobs:
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
-      - name: 🛠 Disable gcc-wrapper (Python2/3 incompatibility)
+      - name: 🛠 Replace gcc-wrapper.py with Python3 transparent wrapper
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          rm -f scripts/gcc-wrapper.py
+          # 创建一个新的 gcc-wrapper.py，直接用 Python 3 调用真正的 GCC
+          cat > scripts/gcc-wrapper.py << 'WRAPPER_EOF'
+          #!/usr/bin/env python3
+          import os, sys
+
+          # 获取交叉编译器前缀，例如 aarch64-linux-android-
+          cross = os.environ.get('CROSS_COMPILE', '')
+          compiler = cross + 'gcc'
+          # 把当前进程直接替换为真正的 gcc，完全绕开警告检查
+          os.execvp(compiler, [compiler] + sys.argv[1:])
+          WRAPPER_EOF
+          chmod +x scripts/gcc-wrapper.py
+          echo "gcc-wrapper.py replaced with Python3 transparent wrapper."
 
       - name: 🧹 Clean previous build artifacts
         run: |
