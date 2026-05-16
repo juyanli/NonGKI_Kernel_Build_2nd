@@ -237,11 +237,14 @@ jobs:
         run: |
           echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=unused-but-set-variable" >> $GITHUB_ENV
 
-      - name: 🛠 Fix missing is_top_app definition
+      - name: 🛠 Fix is_top_app definition (handle both sched.h and core.c)
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
+          # 在头文件中添加 static inline 定义
           sed -i '/extern inline bool is_top_app/c\static inline bool is_top_app(struct task_struct *p) { return false; }' include/linux/sched.h
-          echo "is_top_app fixed."
+          # 删除 core.c 中可能存在的重复定义（整块删除）
+          sed -i '/^inline bool is_top_app/,/^}/d' kernel/sched/core.c
+          echo "is_top_app definition fixed (no redefinition)."
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
