@@ -210,7 +210,7 @@ jobs:
           sed -i '1i override HOSTCC := gcc' Makefile
           # 不再需要清空环境变量，override 优先级最高
 
-          
+
       - name: 🛠 Fix undefined stpcpy
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
@@ -236,6 +236,12 @@ jobs:
       - name: 🛠 Suppress Clang errors for old kernel code
         run: |
           echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=unused-but-set-variable" >> $GITHUB_ENV
+
+      - name: 🛠 Fix missing is_top_app definition
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          sed -i '/extern inline bool is_top_app/c\static inline bool is_top_app(struct task_struct *p) { return false; }' include/linux/sched.h
+          echo "is_top_app fixed."
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
