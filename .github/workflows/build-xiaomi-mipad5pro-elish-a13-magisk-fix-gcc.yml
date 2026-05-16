@@ -1,0 +1,296 @@
+name: Build Droidspaces Kernel for elish
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  # ========== 设备信息 ==========
+  DEVICE_NAME : "Xiaomi Pad 5 Pro WiFi"
+  DEVICE_CODENAME : "elish"
+
+  CUSTOM_CMDS : ""
+  EXTRA_CMDS : ""
+
+  # ========== 内核源码 ==========
+  KERNEL_SOURCE : "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
+  KERNEL_BRANCH : "elish-r-oss"
+
+  # ========== 工具链 ==========
+  CLANG_SOURCE : ""
+  CLANG_BRANCH : ""
+
+  GCC_GNU : true
+  GCC_64_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git"
+  GCC_64_BRANCH : "android12L-release"
+  GCC_32_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git"
+  GCC_32_BRANCH : "android12L-release"
+
+  # ========== 内核配置 ==========
+  DEFCONFIG_SOURCE: ""
+  DEFCONFIG_NAME : "elish_user_defconfig"
+  DEFCONFIG_ORIGIN_IMAGE: ""
+  DEFCONFIG_FROM_BOOT: false
+
+  # ========== KernelSU（保留完整功能，通过变量控制是否集成）==========
+  KERNELSU_SOURCE : ""
+  KERNELSU_BRANCH : ""
+  KERNELSU_AUTO_GET : "false"
+  KERNELSU_AUTO_FORK : "magic"
+  # ★ 当前使用 Magisk，设为 'none' 跳过 KernelSU；将来切换回 KSU 时改为 'manual' 或 'shell' ★
+  KERNELSU_METHOD: "none"  
+
+  # ========== SUSFS（保持原有能力）==========
+  SUSFS_ENABLE : false
+  SUSFS_FIXED : false
+
+  # ========== 打包 ==========
+  AK3_SOURCE : "https://github.com/osm0sis/AnyKernel3.git"
+  AK3_BRANCH : "master"
+  BOOT_SOURCE : "https://github.com/juyanli/NonGKI_Kernel_Build_2nd/releases/download/1778048236/boot.img"
+  DTOBO_SOURCE : "https://github.com/juyanli/NonGKI_Kernel_Build_2nd/releases/download/1778048236/dtbo.img"
+
+  # ★ 小米平板 5 Pro 需要 dtbo，必须为 true ★
+  NEED_DTBO : true
+  NEED_SAFE_DTBO : false
+
+  ROM_TEXT : "elish_stock"
+
+  # ========== 其他环境 ==========
+  PYTHON_VERSION: "3"
+  PACK_METHOD: "Anykernel3"
+  PACK_KMODULES: "false"
+
+  PATCHES_SOURCE: ""
+  PATCHES_BRANCH: ""
+
+  SUSFS_FOLDER_FIXED: ""
+  SUSFS_PATCH_FIXED: ""
+
+  REKERNEL_ENABLE: "false"
+  HOOK_METHOD: "syscall"
+  KERNEL_PATCH: "false"
+
+  KPM_ENABLE: "false"
+  KPM_INLINE: "false"
+  KPM_KPATCH_NEXT: "false"
+  KPM_PATCH_SOURCE: ""
+
+  BASEBAND_GUARD_ENABLE: "false"
+  BASEBAND_GUARD_BOOT: "false"
+
+  HIDE_STUFF: "false"
+
+  GENERATE_DTB: "false"
+  GENERATE_CHIP: "qcom"
+
+  BUILD_DEBUGGER: "false"
+  SKIP_PATCH: "false"
+
+  BUILD_OTHER_CONFIG: "false"
+  MERGE_CONFIG_FILES: ""
+
+  FREE_MORE_SPACE: "false"
+
+jobs:
+  build-kernel:
+    name: Build Kernel
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_HARDLINK: "true"
+
+    steps:
+      - name: ⏰ Checkout repository
+        uses: actions/checkout@v6
+
+      - name: ⌛️ Compilation environment preparation
+        uses: ./.github/workflows/build-env
+
+      - name: ⚙️ Get neccssary tools
+        uses: ./.github/workflows/build-ready
+
+      - name: 🧰 Integrate Magic-KernelSU (enabled only when KERNELSU_METHOD != 'none')
+        if: ${{ env.KERNELSU_METHOD != 'none' }}
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash -s main
+
+      - name: 🪝 Patch Kernel of SUSFS
+        uses: ./.github/workflows/patch-susfs
+
+      - name: 🔗 Patch for no-kprobe
+        uses: ./.github/workflows/patch-no-kprobe
+
+      # ========== ★ 完整内核选项：Droidspaces 官方非 GKI + Magisk + PSTORE ★ ==========
+      - name: 🪛 Extra Kernel Options (Droidspaces Official Non-GKI + Magisk + PSTORE)
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel || cd $GITHUB_WORKSPACE
+          DEFCONFIG="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
+          echo "==> Adding Droidspaces official non-GKI configs to ${DEFCONFIG}"
+
+          # --- 官方非 GKI (≤4.19) 全部必需项 ---
+          for opt in CONFIG_SYSCTL CONFIG_SYSVIPC CONFIG_POSIX_MQUEUE \
+                     CONFIG_NAMESPACES CONFIG_PID_NS CONFIG_UTS_NS CONFIG_IPC_NS \
+                     CONFIG_SECCOMP CONFIG_SECCOMP_FILTER \
+                     CONFIG_CGROUPS CONFIG_CGROUP_DEVICE CONFIG_CGROUP_PIDS CONFIG_MEMCG \
+                     CONFIG_CGROUP_SCHED CONFIG_FAIR_GROUP_SCHED CONFIG_CGROUP_FREEZER \
+                     CONFIG_CGROUP_NET_PRIO CONFIG_CPUSETS \
+                     CONFIG_DEVTMPFS CONFIG_OVERLAY_FS CONFIG_FW_LOADER \
+                     CONFIG_FW_LOADER_USER_HELPER CONFIG_FW_LOADER_COMPRESS \
+                     CONFIG_NET_NS CONFIG_VETH CONFIG_BRIDGE CONFIG_NETFILTER \
+                     CONFIG_BRIDGE_NETFILTER CONFIG_NETFILTER_ADVANCED \
+                     CONFIG_NF_CONNTRACK CONFIG_IP_NF_IPTABLES CONFIG_IP_NF_FILTER \
+                     CONFIG_NF_NAT CONFIG_NF_TABLES CONFIG_IP_NF_TARGET_MASQUERADE \
+                     CONFIG_NETFILTER_XT_TARGET_MASQUERADE \
+                     CONFIG_NETFILTER_XT_TARGET_TCPMSS \
+                     CONFIG_NETFILTER_XT_MATCH_ADDRTYPE \
+                     CONFIG_NF_CONNTRACK_NETLINK CONFIG_NF_NAT_REDIRECT \
+                     CONFIG_IP_ADVANCED_ROUTER CONFIG_IP_MULTIPLE_TABLES \
+                     CONFIG_NF_CONNTRACK_IPV4 CONFIG_NF_NAT_IPV4 CONFIG_IP_NF_NAT \
+                     CONFIG_TMPFS_XATTR; do
+            grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
+          done
+          
+          # 显式禁用 Android 偏执网络
+          grep -q "^CONFIG_ANDROID_PARANOID_NETWORK=n" ${DEFCONFIG} || \
+            echo "CONFIG_ANDROID_PARANOID_NETWORK=n" >> ${DEFCONFIG}
+
+          # 先删除可能存在的 MODVERSIONS 配置，再重新添加禁用
+          sed -i '/CONFIG_MODVERSIONS/d' ${DEFCONFIG}
+          echo "# CONFIG_MODVERSIONS is not set" >> ${DEFCONFIG}
+          
+          # ========== ★ Magisk 所需配置 ★ ==========
+          grep -q "^CONFIG_DEVPTS_MULTIPLE_INSTANCES=y" ${DEFCONFIG} || \
+            echo "CONFIG_DEVPTS_MULTIPLE_INSTANCES=y" >> ${DEFCONFIG}
+          
+          # ========== ★ PSTORE / RAMOOPS (内核崩溃日志) ★ ==========
+          for opt in CONFIG_PSTORE CONFIG_PSTORE_CONSOLE CONFIG_PSTORE_RAM CONFIG_RAMOOPS; do
+            grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
+          done
+
+          # 创建 MODVERSIONS 禁用覆盖文件
+          cat > arch/arm64/configs/modversions_off.config << 'EOF'
+          # CONFIG_MODVERSIONS is not set
+          EOF
+
+          echo "==> Done. All Droidspaces official configs + Magisk + PSTORE have been injected."
+
+      - name: 🧹 Deep Clean and Force Disable KSU
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          # 1. 彻底恢复内核源码到原始状态，移除所有可能的残留
+          git checkout -- .
+          git clean -fd
+          # 2. 删除 KSU 残留目录（如果存在）
+          rm -rf drivers/kernelsu KernelSU
+          # 3. 通过环境变量明确禁止 KernelSU 被自动集成
+          echo "KERNELSU_METHOD=none" >> $GITHUB_ENV
+          echo "KERNELSU_AUTO_GET=false" >> $GITHUB_ENV
+          echo "KernelSU aggressively disabled and source cleaned."
+
+      - name: 🛠 Replace gcc-wrapper.py with Python3 transparent wrapper
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          cat > scripts/gcc-wrapper.py << 'WRAPPER_EOF'
+          #!/usr/bin/env python3
+          import os, sys
+          cross = os.environ.get('CROSS_COMPILE', '')
+          compiler = cross + 'gcc'
+          os.execvp(compiler, [compiler] + sys.argv[1:])
+          WRAPPER_EOF
+          chmod +x scripts/gcc-wrapper.py
+          echo "gcc-wrapper.py replaced with Python3 transparent wrapper
+
+      - name: 🛠 Fix undefined stpcpy
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          if ! grep -q 'stpcpy' include/linux/string.h; then
+            echo 'char *stpcpy(char *dest, const char *src);' >> include/linux/string.h
+          fi
+          sed -i '/^EOF$/d' lib/string.c
+          if ! grep -q 'stpcpy' lib/string.c; then
+            cat >> lib/string.c << 'STPCPY_EOF'
+          char *stpcpy(char *dest, const char *src)
+          {
+              size_t len = strlen(src);
+              memcpy(dest, src, len + 1);
+              return dest + len;
+          }
+          STPCPY_EOF
+          fi
+
+      - name: 🔧 Fix Clang assembly & dtc yylloc
+        run: |
+          echo "AS=clang" >> $GITHUB_ENV
+          echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
+
+      - name: 🛠 Suppress Clang errors for old kernel code
+        run: |
+          echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=unused-but-set-variable" >> $GITHUB_ENV
+
+      - name: 🧰 Patch Kernel of Re:Kernel
+        uses: ./.github/workflows/patch-rekernel
+
+      - name: 🧹 Clean previous build artifacts
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          rm -rf out
+
+      # ========== ★ 准备 dtbo.img（解决屏幕显示问题）★ ==========
+      - name: 📦 Prepare dtbo.img for packaging
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          mkdir -p out/arch/arm64/boot
+          DTBO_TARGET="out/arch/arm64/boot/dtbo.img"
+          
+          if [[ -n "${{ env.DTOBO_SOURCE }}" ]]; then
+            echo "Downloading dtbo.img from ${{ env.DTOBO_SOURCE }}"
+            curl -L -o ${DTBO_TARGET} "${{ env.DTOBO_SOURCE }}"
+          elif [[ -n "${{ env.BOOT_SOURCE }}" ]]; then
+            echo "Extracting dtbo.img from boot.img (${{ env.BOOT_SOURCE }})"
+            curl -L -o boot.img "${{ env.BOOT_SOURCE }}"
+            sudo apt update && sudo apt install -y android-sdk-extractor 2>/dev/null || true
+            if command -v unpackbootimg &> /dev/null; then
+              unpackbootimg -i boot.img -o ./boot_extract/
+              if [[ -f ./boot_extract/boot.img-dtbo ]]; then
+                mv ./boot_extract/boot.img-dtbo ${DTBO_TARGET}
+              fi
+            else
+              echo "::warning::unpackbootimg not found, cannot extract dtbo. Please set DTOBO_SOURCE manually."
+            fi
+            rm -f boot.img
+          else
+            echo "::warning::Neither DTOBO_SOURCE nor BOOT_SOURCE is set. dtbo.img will NOT be included in the final zip. Screen issues may occur."
+          fi
+          
+          if [[ -f ${DTBO_TARGET} ]]; then
+            echo "dtbo.img is ready (size: $(stat -c%s ${DTBO_TARGET}) bytes)"
+          else
+            echo "dtbo.img not available. Display/touch may not work properly."
+          fi
+
+      - name: 🚀 Build Process
+        uses: ./.github/workflows/build-process
+
+      - name: 🔩 Pack Process
+        uses: ./.github/workflows/pack-process
+
+      - name: ✅ Validate final package
+        run: |
+          ZIPFILE=$(ls $GITHUB_WORKSPACE/device_kernel/*-Anykernel3.zip | head -1)
+          if [[ -z "$ZIPFILE" ]]; then
+            echo "::error::No AnyKernel3 zip found!"
+            exit 1
+          fi
+          echo "Final package: $ZIPFILE"
+          unzip -l "$ZIPFILE" | head -20
+          if unzip -l "$ZIPFILE" | grep -q "dtbo.img"; then
+            echo "✅ dtbo.img is included in the package."
+          else
+            echo "⚠️ dtbo.img is NOT included. Screen display may be abnormal."
+          fi
+
+      - name: ✏️ Upload Artifacts
+        uses: ./.github/workflows/upload-files
