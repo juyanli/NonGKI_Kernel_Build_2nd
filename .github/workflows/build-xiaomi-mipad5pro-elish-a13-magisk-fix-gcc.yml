@@ -203,6 +203,15 @@ jobs:
           chmod +x scripts/gcc-wrapper.py
           echo "gcc-wrapper.py replaced with Python3 transparent wrapper"
 
+      - name: 🔧 Force CC and HOSTCC in Makefile
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          sed -i '1i CC := $(CROSS_COMPILE)gcc' Makefile
+          sed -i '1i HOSTCC := gcc' Makefile
+          # 清除可能存在的 CC/HOSTCC 环境变量，避免覆盖 Makefile
+          echo "CC=" >> $GITHUB_ENV
+          echo "HOSTCC=" >> $GITHUB_ENV
+
       - name: 🛠 Fix undefined stpcpy
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
