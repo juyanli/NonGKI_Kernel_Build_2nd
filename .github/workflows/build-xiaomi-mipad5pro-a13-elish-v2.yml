@@ -5,18 +5,18 @@ on:
   workflow_dispatch:
 
 env:
-  # ========== Éè±¸ĞÅÏ¢ ==========
+  # ========== è®¾å¤‡ä¿¡æ¯ ==========
   DEVICE_NAME : "Xiaomi Pad 5 Pro WiFi"
   DEVICE_CODENAME : "elish"
 
   CUSTOM_CMDS : "CLANG_TRIPLE=aarch64-linux-gnu-"
   EXTRA_CMDS : "LD=ld.lld LLVM=1 LLVM_IAS=1"
 
-  # ========== ÄÚºËÔ´Âë ==========
+  # ========== å†…æ ¸æºç  ==========
   KERNEL_SOURCE : "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
   KERNEL_BRANCH : "elish-r-oss"
 
-  # ========== ¹¤¾ßÁ´ ==========
+  # ========== å·¥å…·é“¾ ==========
   CLANG_SOURCE : "https://github.com/ZyCromerZ/Clang/releases/download/16.0.6-20260510-release/Clang-16.0.6-20260510.tar.gz"
   CLANG_BRANCH : ""
 
@@ -26,37 +26,37 @@ env:
   GCC_32_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git"
   GCC_32_BRANCH : "android12L-release"
 
-  # ========== ÄÚºËÅäÖÃ ==========
+  # ========== å†…æ ¸é…ç½® ==========
   DEFCONFIG_SOURCE: ""
   DEFCONFIG_NAME : "elish_user_defconfig"
   DEFCONFIG_ORIGIN_IMAGE: ""
   DEFCONFIG_FROM_BOOT: false
 
-  # ========== KernelSU£¨±£ÁôÍêÕû¹¦ÄÜ£¬Í¨¹ı±äÁ¿¿ØÖÆÊÇ·ñ¼¯³É£©==========
+  # ========== KernelSUï¼ˆä¿ç•™å®Œæ•´åŠŸèƒ½ï¼Œé€šè¿‡å˜é‡æ§åˆ¶æ˜¯å¦é›†æˆï¼‰==========
   KERNELSU_SOURCE : ""
   KERNELSU_BRANCH : ""
   KERNELSU_AUTO_GET : "false"
   KERNELSU_AUTO_FORK : "magic"
-  # ¡ï µ±Ç°Ê¹ÓÃ Magisk£¬ÉèÎª 'none' Ìø¹ı KernelSU£»½«À´ÇĞ»»»Ø KSU Ê±¸ÄÎª 'manual' »ò 'shell' ¡ï
+  # â˜… å½“å‰ä½¿ç”¨ Magiskï¼Œè®¾ä¸º 'none' è·³è¿‡ KernelSUï¼›å°†æ¥åˆ‡æ¢å› KSU æ—¶æ”¹ä¸º 'manual' æˆ– 'shell' â˜…
   KERNELSU_METHOD: "none"  
 
-  # ========== SUSFS£¨±£³ÖÔ­ÓĞÄÜÁ¦£©==========
+  # ========== SUSFSï¼ˆä¿æŒåŸæœ‰èƒ½åŠ›ï¼‰==========
   SUSFS_ENABLE : false
   SUSFS_FIXED : false
 
-  # ========== ´ò°ü ==========
+  # ========== æ‰“åŒ… ==========
   AK3_SOURCE : "https://github.com/osm0sis/AnyKernel3.git"
   AK3_BRANCH : "master"
   BOOT_SOURCE : "https://github.com/juyanli/NonGKI_Kernel_Build_2nd/releases/download/1778048236/boot.img"
   DTOBO_SOURCE : "https://github.com/juyanli/NonGKI_Kernel_Build_2nd/releases/download/1778048236/dtbo.img"
 
-  # ¡ï Ğ¡Ã×Æ½°å 5 Pro ĞèÒª dtbo£¬±ØĞëÎª true ¡ï
+  # â˜… å°ç±³å¹³æ¿ 5 Pro éœ€è¦ dtboï¼Œå¿…é¡»ä¸º true â˜…
   NEED_DTBO : true
   NEED_SAFE_DTBO : false
 
   ROM_TEXT : "elish_stock"
 
-  # ========== ÆäËû»·¾³ ==========
+  # ========== å…¶ä»–ç¯å¢ƒ ==========
   PYTHON_VERSION: "3"
   PACK_METHOD: "Anykernel3"
   PACK_KMODULES: "false"
@@ -102,34 +102,34 @@ jobs:
       CCACHE_HARDLINK: "true"
 
     steps:
-      - name: ? Checkout repository
+      - name: â° Checkout repository
         uses: actions/checkout@v6
 
-      - name: ?? Compilation environment preparation
+      - name: âŒ›ï¸ Compilation environment preparation
         uses: ./.github/workflows/build-env
 
-      - name: ?? Get neccssary tools
+      - name: âš™ï¸ Get neccssary tools
         uses: ./.github/workflows/build-ready
 
-      # ========== ¡ï Ìõ¼ş¼¯³É KernelSU£¨½öÔÚĞèÒªÊ±Ö´ĞĞ£¬±£ÁôÍêÕûÁ÷³Ì£©¡ï ==========
-      - name: ? Integrate Magic-KernelSU (enabled only when KERNELSU_METHOD != 'none')
+      # ========== â˜… æ¡ä»¶é›†æˆ KernelSUï¼ˆä»…åœ¨éœ€è¦æ—¶æ‰§è¡Œï¼Œä¿ç•™å®Œæ•´æµç¨‹ï¼‰â˜… ==========
+      - name: ğŸ§° Integrate Magic-KernelSU (enabled only when KERNELSU_METHOD != 'none')
         if: ${{ env.KERNELSU_METHOD != 'none' }}
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
           curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash -s main
-      - name: ? Patch Kernel of SUSFS
+      - name: ğŸª Patch Kernel of SUSFS
         uses: ./.github/workflows/patch-susfs
 
-      - name: ? Patch for no-kprobe
+      - name: ğŸ”— Patch for no-kprobe
         uses: ./.github/workflows/patch-no-kprobe
 
-      - name: ? Extra Kernel Options (Droidspaces Official Non-GKI)
+      - name: ğŸª› Extra Kernel Options (Droidspaces Official Non-GKI)
         run: |
           cd $GITHUB_WORKSPACE/device_kernel || cd $GITHUB_WORKSPACE
           DEFCONFIG="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
           echo "==> Adding Droidspaces official non-GKI configs to ${DEFCONFIG}"
           
-          # --- ¹Ù·½·Ç GKI (¡Ü4.19) È«²¿±ØĞèÏî ---
+          # --- å®˜æ–¹é GKI (â‰¤4.19) å…¨éƒ¨å¿…éœ€é¡¹ ---
           for opt in CONFIG_SYSCTL CONFIG_SYSVIPC CONFIG_POSIX_MQUEUE \
                      CONFIG_NAMESPACES CONFIG_PID_NS CONFIG_UTS_NS CONFIG_IPC_NS \
                      CONFIG_SECCOMP CONFIG_SECCOMP_FILTER \
@@ -150,30 +150,30 @@ jobs:
             grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
           done
           
-          # ÏÔÊ½½ûÓÃ Android Æ«Ö´ÍøÂç
+          # æ˜¾å¼ç¦ç”¨ Android åæ‰§ç½‘ç»œ
           grep -q "^CONFIG_ANDROID_PARANOID_NETWORK=n" ${DEFCONFIG} || \
             echo "CONFIG_ANDROID_PARANOID_NETWORK=n" >> ${DEFCONFIG}
-          # ========== ¡ï Ç¿ÖÆ½ûÓÃ KPM£¬ÅÅ³ıÆä¸ÉÈÅ ¡ï ==========
+          # ========== â˜… å¼ºåˆ¶ç¦ç”¨ KPMï¼Œæ’é™¤å…¶å¹²æ‰° â˜… ==========
           sed -i '/CONFIG_KPM/d' ${DEFCONFIG}
           echo "# CONFIG_KPM is not set" >> ${DEFCONFIG}
           
           echo "==> Done. All Droidspaces official configs have been injected (KPM disabled)."
-      - name: ? Force Clang integrated assembler for all targets
+      - name: ğŸ”§ Force Clang integrated assembler for all targets
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          # ½«¶¥²ã Makefile ÖĞµÄ AS ¶¨Òå¸ÄÎªÖ±½ÓÊ¹ÓÃ CC ²¢Ìí¼Ó -c Ñ¡Ïî
+          # å°†é¡¶å±‚ Makefile ä¸­çš„ AS å®šä¹‰æ”¹ä¸ºç›´æ¥ä½¿ç”¨ CC å¹¶æ·»åŠ  -c é€‰é¡¹
           sed -i 's/^AS\s*=.*/AS = $(CC) -c/' Makefile
          
-      - name: ? Fix undefined stpcpy
+      - name: ğŸ›  Fix undefined stpcpy
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          # °²È«µØÌí¼Ó stpcpy ÉùÃ÷
+          # å®‰å…¨åœ°æ·»åŠ  stpcpy å£°æ˜
           if ! grep -q 'stpcpy' include/linux/string.h; then
             echo 'char *stpcpy(char *dest, const char *src);' >> include/linux/string.h
           fi
-          # ÇåÀí¿ÉÄÜÒâÍâĞ´ÈëµÄ EOF ĞĞ
+          # æ¸…ç†å¯èƒ½æ„å¤–å†™å…¥çš„ EOF è¡Œ
           sed -i '/^EOF$/d' lib/string.c
-          # Èç¹ûÉĞÎ´Ìí¼Ó stpcpy ¶¨Òå£¬Ôò×·¼Ó
+          # å¦‚æœå°šæœªæ·»åŠ  stpcpy å®šä¹‰ï¼Œåˆ™è¿½åŠ 
           if ! grep -q 'stpcpy' lib/string.c; then
             cat >> lib/string.c << 'STPCPY_EOF'
           char *stpcpy(char *dest, const char *src)
@@ -184,36 +184,36 @@ jobs:
           }
           STPCPY_EOF
           fi       
-      - name: ? Fix Clang assembly & dtc yylloc
+      - name: ğŸ”§ Fix Clang assembly & dtc yylloc
         run: |
           echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
-      - name: ? Suppress Clang errors for old kernel code
+      - name: ğŸ›  Suppress Clang errors for old kernel code
         run: |
           echo "KCFLAGS=-Wno-error=implicit-int -Wno-error=strict-prototypes -Wno-error=unused-but-set-variable" >> $GITHUB_ENV       
-      - name: ? Patch Kernel of Re:Kernel
+      - name: ğŸ§° Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
-      - name: ? Clean previous build artifacts
+      - name: ğŸ§¹ Clean previous build artifacts
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
           rm -rf out  
                           
-      # ========== ¡ï ĞÂÔö£º×¼±¸ dtbo.img£¨½â¾öÆÁÄ»ÏÔÊ¾ÎÊÌâ£©¡ï ==========
-      - name: ? Prepare dtbo.img for packaging
+      # ========== â˜… æ–°å¢ï¼šå‡†å¤‡ dtbo.imgï¼ˆè§£å†³å±å¹•æ˜¾ç¤ºé—®é¢˜ï¼‰â˜… ==========
+      - name: ğŸ“¦ Prepare dtbo.img for packaging
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
           mkdir -p out/arch/arm64/boot
           DTBO_TARGET="out/arch/arm64/boot/dtbo.img"
           
-          # ÓÅÏÈÊ¹ÓÃµ¥¶ÀµÄ DTOBO_SOURCE
+          # ä¼˜å…ˆä½¿ç”¨å•ç‹¬çš„ DTOBO_SOURCE
           if [[ -n "${{ env.DTOBO_SOURCE }}" ]]; then
             echo "Downloading dtbo.img from ${{ env.DTOBO_SOURCE }}"
             curl -L -o ${DTBO_TARGET} "${{ env.DTOBO_SOURCE }}"
           elif [[ -n "${{ env.BOOT_SOURCE }}" ]]; then
             echo "Extracting dtbo.img from boot.img (${{ env.BOOT_SOURCE }})"
             curl -L -o boot.img "${{ env.BOOT_SOURCE }}"
-            # Ê¹ÓÃ unpackbootimg ÌáÈ¡ dtbo£¨ĞèÏÈ°²×°£©
+            # ä½¿ç”¨ unpackbootimg æå– dtboï¼ˆéœ€å…ˆå®‰è£…ï¼‰
             sudo apt update && sudo apt install -y android-sdk-extractor 2>/dev/null || true
             if command -v unpackbootimg &> /dev/null; then
               unpackbootimg -i boot.img -o ./boot_extract/
@@ -233,17 +233,17 @@ jobs:
           else
             echo "dtbo.img not available. Display/touch may not work properly."
           fi
-      - name: ? Build Process
+      - name: ğŸš€ Build Process
         uses: ./.github/workflows/build-process
         env:
           CC: clang     
           LDFLAGS_vmlinux: --no-undefined-version   
 
-      - name: ? Pack Process
+      - name: ğŸ”© Pack Process
         uses: ./.github/workflows/pack-process
 
-      # ========== ¡ï ĞÂÔö£ºÑéÖ¤×îÖÕË¢»ú°üÄÚÈİ ¡ï ==========
-      - name: ? Validate final package
+      # ========== â˜… æ–°å¢ï¼šéªŒè¯æœ€ç»ˆåˆ·æœºåŒ…å†…å®¹ â˜… ==========
+      - name: âœ… Validate final package
         run: |
           ZIPFILE=$(ls $GITHUB_WORKSPACE/device_kernel/*-Anykernel3.zip | head -1)
           if [[ -z "$ZIPFILE" ]]; then
@@ -251,13 +251,13 @@ jobs:
             exit 1
           fi
           echo "Final package: $ZIPFILE"
-          # ÁĞ³ö°üÄÚÈİ£¨½öµ÷ÊÔ£©
+          # åˆ—å‡ºåŒ…å†…å®¹ï¼ˆä»…è°ƒè¯•ï¼‰
           unzip -l "$ZIPFILE" | head -20
-          # ¼ì²éÊÇ·ñ°üº¬ dtbo.img£¨Èô NEED_DTBO Îª true ÇÒ dtbo ´æÔÚ£©
+          # æ£€æŸ¥æ˜¯å¦åŒ…å« dtbo.imgï¼ˆè‹¥ NEED_DTBO ä¸º true ä¸” dtbo å­˜åœ¨ï¼‰
           if unzip -l "$ZIPFILE" | grep -q "dtbo.img"; then
-            echo "? dtbo.img is included in the package."
+            echo "âœ… dtbo.img is included in the package."
           else
-            echo "?? dtbo.img is NOT included. Screen display may be abnormal."
+            echo "âš ï¸ dtbo.img is NOT included. Screen display may be abnormal."
           fi
-      - name: ?? Upload Artifacts
+      - name: âœï¸ Upload Artifacts
         uses: ./.github/workflows/upload-files
