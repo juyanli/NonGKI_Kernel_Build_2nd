@@ -159,11 +159,7 @@ jobs:
           echo "# CONFIG_KPM is not set" >> ${DEFCONFIG}
           
           echo "==> Done. All Droidspaces official configs have been injected (KPM disabled)."
-      - name: 🔧 Force Clang integrated assembler for all targets
-        run: |
-          cd $GITHUB_WORKSPACE/device_kernel
-          # 将顶层 Makefile 中的 AS 定义改为直接使用 CC 并添加 -c 选项
-          sed -i 's/^AS\s*=.*/AS = $(CC) -c/' Makefile
+
          
       - name: 🛠 Fix undefined stpcpy
         run: |
@@ -195,22 +191,18 @@ jobs:
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
-      - name: 🛠 Replace gcc-wrapper.py with Python3 transparent wrapper
+      - name: 🛠 Fix Makefile for GCC (remove gcc-wrapper dependency)
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          # 创建一个新的 gcc-wrapper.py，直接用 Python 3 调用真正的 GCC
-          cat > scripts/gcc-wrapper.py << 'WRAPPER_EOF'
-          #!/usr/bin/env python3
-          import os, sys
-
-          # 获取交叉编译器前缀，例如 aarch64-linux-android-
-          cross = os.environ.get('CROSS_COMPILE', '')
-          compiler = cross + 'gcc'
-          # 把当前进程直接替换为真正的 gcc，完全绕开警告检查
-          os.execvp(compiler, [compiler] + sys.argv[1:])
-          WRAPPER_EOF
-          chmod +x scripts/gcc-wrapper.py
-          echo "gcc-wrapper.py replaced with Python3 transparent wrapper."
+          # 删除可能存在的 gcc-wrapper.py，避免被引用
+          rm -f scripts/gcc-wrapper.py
+          # 在 Makefile 开头强制插入 CC 定义，绕过 wrapper
+          sed -i '1i CC := $(CROSS_COMPILE)gcc' Makefile
+          # 确保 AS 定义正常（去除之前 Clang 的修改）
+          sed -i 's/^AS\s*=.*/AS = $(CROSS_COMPILE)as/' Makefile
+          # 将 HOSTCC 也设置为系统 gcc，避免主机工具用错编译器
+          echo "HOSTCC=gcc" >> $GITHUB_ENV
+          echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
       - name: 🧹 Clean previous build artifacts
         run: |
@@ -253,9 +245,7 @@ jobs:
           fi
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
-        env:
-          CC: clang     
-          LDFLAGS_vmlinux: --no-undefined-version   
+ 
 
       - name: 🔩 Pack Process
         uses: ./.github/workflows/pack-process
