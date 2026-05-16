@@ -201,7 +201,7 @@ jobs:
           os.execvp(compiler, [compiler] + sys.argv[1:])
           WRAPPER_EOF
           chmod +x scripts/gcc-wrapper.py
-          echo "gcc-wrapper.py replaced with Python3 transparent wrapper
+          echo "gcc-wrapper.py replaced with Python3 transparent wrapper"
 
       - name: 🛠 Fix undefined stpcpy
         run: |
@@ -221,9 +221,8 @@ jobs:
           STPCPY_EOF
           fi
 
-      - name: 🔧 Fix Clang assembly & dtc yylloc
+      - name: 🔧 Fix dtc yylloc
         run: |
-          echo "AS=clang" >> $GITHUB_ENV
           echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
       - name: 🛠 Suppress Clang errors for old kernel code
