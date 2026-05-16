@@ -193,6 +193,12 @@ jobs:
             grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
           done
 
+          # ========== ★ 补充 DroidSpaces 官方要求的其他选项 ★ ==========
+          for opt in CONFIG_SYSCTL CONFIG_TMPFS_XATTR CONFIG_FW_LOADER_COMPRESS \
+                     CONFIG_NF_TABLES CONFIG_NF_CONNTRACK_IPV4; do
+            grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
+          done
+
           echo "==> Done. All Droidspaces essentials + Magisk + PSTORE have been injected."
 
       - name: 🔧 Force Clang integrated assembler for all targets
