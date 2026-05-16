@@ -201,7 +201,16 @@ jobs:
       - name: 🧹 Clean previous build artifacts
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          rm -rf out        
+          rm -rf out  
+
+      - name: 📝 Ensure CONFIG_MODVERSIONS is disabled
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          # 重新生成默认 .config 并强制禁用 MODVERSIONS
+          make O=out ARCH=arm64 elish_user_defconfig
+          sed -i 's/^CONFIG_MODVERSIONS=y/# CONFIG_MODVERSIONS is not set/' out/.config
+          make O=out ARCH=arm64 olddefconfig
+                          
 
       # ========== ★ 新增：准备 dtbo.img（解决屏幕显示问题）★ ==========
       - name: 📦 Prepare dtbo.img for packaging
