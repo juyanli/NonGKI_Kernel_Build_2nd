@@ -169,7 +169,12 @@ jobs:
           for opt in CONFIG_PSTORE CONFIG_PSTORE_CONSOLE CONFIG_PSTORE_RAM CONFIG_RAMOOPS; do
             grep -q "^${opt}=y" ${DEFCONFIG} || echo "${opt}=y" >> ${DEFCONFIG}
           done
-          
+
+          # 创建 MODVERSIONS 禁用覆盖文件
+          cat > arch/arm64/configs/modversions_off.config << 'EOF'
+          # CONFIG_MODVERSIONS is not set
+          EOF
+
           echo "==> Done. All Droidspaces official configs + Magisk + PSTORE have been injected."
 
       - name: 🧹 Deep Clean and Force Disable KSU
@@ -258,6 +263,7 @@ jobs:
         env:
           CC: clang
           LDFLAGS_vmlinux: --no-undefined-version
+          KCONFIG_ALLCONFIG: arch/arm64/configs/modversions_off.config
 
       - name: 🔩 Pack Process
         uses: ./.github/workflows/pack-process
